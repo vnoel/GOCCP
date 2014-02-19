@@ -1,0 +1,1 @@
+find /bdd/CALIPSO/Lidar_L1/CAL_LID_L1.v3.02/2013/2013_01* | grep ZN.hdf > 201301_night
