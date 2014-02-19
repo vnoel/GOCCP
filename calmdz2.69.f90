@@ -1614,6 +1614,17 @@ print *, 'Interpolation of data & molecular calculation done'
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
 !****************************************************************************!
 
+
+! noms output : base + period + day/night + grille + sat/cloudy + version
+! e.g. 
+! SR_histo330m_201005_night_CFMIP2_sat_2.68.nc
+! base = SR_histo330m_
+! period = 200701_night [on va recycler file5 pour ca]
+! day/night  [variable switch]
+! grille = LMDZ, CFMIP1, CFMIP2, NASA [variable gcm]
+! sat/cloudy [variable switch2]
+! version = 2.68 [variable version]:
+
     
  file6='MapLowMidHigh'//trim(file5(17:))//trim(version)    ! Output Map file name
  file66='MapHigh'//trim(file5(17:))//trim(version)    ! Output Map file name
