@@ -21,7 +21,7 @@ output=$liste.$suffix
 mkdir $output
 cp calmdz2.69.e $output/
 cp CFMIP2.p $output/
-cp src/args.init $output/args
+cp args.init $output/args
 cp -r grilles_lmdz $output/
 cp -r Liste $output/
 
