@@ -899,15 +899,15 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
 !****************************************************************************!
 
-!------------------- Open output grid file -----------------------!
+!------------------- Output period identifier---------------------!
 !                                                                 !
-!   The format you have to enter is :                             !
-!   "Map3D330m_",period,day/night,grid,version                    !
-!   ex : "Map3D330m_200701_night_CFMIP_1.0"                       !
+!   Documents the period covered by the input list file.          !
+!   Free format. E.g. 200701 or 2007                              !
 !                                                                 !
 !-----------------------------------------------------------------!
+
   do
-   write (*,'(a)',advance='no') 'output Prof file name = '
+   write (*,'(a)',advance='no') 'Period identifier ? '
      read *, file5
      if (err==0) exit 
   enddo
@@ -1619,21 +1619,28 @@ print *, 'Interpolation of data & molecular calculation done'
 ! e.g. 
 ! SR_histo330m_201005_night_CFMIP2_sat_2.68.nc
 ! base = SR_histo330m_
-! period = 200701_night [on va recycler file5 pour ca]
+! period = 200701 [on va recycler file5 pour ca]
 ! day/night  [variable switch]
 ! grille = LMDZ, CFMIP1, CFMIP2, NASA [variable gcm]
 ! sat/cloudy [variable switch2]
 ! version = 2.68 [variable version]:
 
     
- file6='MapLowMidHigh'//trim(file5(17:))//trim(version)    ! Output Map file name
- file66='MapHigh'//trim(file5(17:))//trim(version)    ! Output Map file name
-file7='SR_histo'//trim(file5(17:)) //trim(version)          ! Output diagSR file name
- file12='SR_histo_Phase'//trim(file5(17:)) //trim(version)          ! Output diagSR file name
- file10='3D_CloudFraction_Phase'//trim(file5(17:))//trim(version)    ! Output depolSR file name
-file13='3D_CloudFraction_Temp'//trim(file5(17:))//trim(version)  
- file11='MapLowMidHigh_Phase'//trim(file5(17:))//trim(version)    ! Output Map file name
-! file12='Phase_histo'//trim(file5(17:))//trim(version)    ! Output Map file name
+! Output Map file name
+file6='MapLowMidHigh_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
+! Output Map file name
+file66='MapHigh_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
+! Output diagSR file name
+file7='SR_histo_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
+! Output diagSR file name
+file12='SR_histo_Phase_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
+! Output depolSR file name
+file10='3D_CloudFraction_Phase_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
+file13='3D_CloudFraction_Temp_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
+! Output Map file name
+file11='MapLowMidHigh_Phase_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
+! Output Map file name
+! file12='Phase_histo'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
 
 
 print *, 'altmax=',altmax
@@ -4825,7 +4832,8 @@ deallocate(phasefractday,indphasefractday)
 
 !**************************** SAVE THE MAP3D FILES **************************!
 
-file8=trim(file5)//trim(version)//'.nc'   ! name of output netcdf MAP3D file
+! name of output netcdf MAP3D file
+file8='Map3D330m_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)//'.nc'
 file9=trim(file3(25:55))   ! period of MAP3D file (description of ncdf file) 
 
 
