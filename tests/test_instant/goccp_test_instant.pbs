@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# run GOCCP on a specific filelist for validation
+# put the executable in the directory and run it
+
+# you might need to change the name of the executable below
+
+#PBS -N "goccp"
+#PBS -l "nodes=1"
+#PBS -j oe
+#PBS -m e
+
+cd $PBS_O_WORKDIR
+
+./calmdz2.69.e < args.test_instant
