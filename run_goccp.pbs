@@ -6,7 +6,7 @@
 # to start this job: qsub -v liste='201301_night' run_goccp.pbs
 # si on veut faire le jour il faut changer le fichier src/args.init
 
-# list name should be in format period_day / period_night
+# list name should be in format period_ + day / night
 
 #PBS -N "goccp"
 #PBS -l "nodes=1"
@@ -19,6 +19,7 @@ cd $PBS_O_WORKDIR
 suffix=${PBS_JOBID%%"."*}
 output=$liste.$suffix
 mkdir $output
+period=${liste%%"_"*}
 cp calmdz2.69.e $output/
 cp CFMIP2.p $output/
 cp args.init $output/args
@@ -27,6 +28,9 @@ cp -r Liste $output/
 
 cd $output
 sed -i s/LISTNAME/$liste/g args 
-sed -i s/PERIOD/$liste/g args
+sed -i s/PERIOD_ID/$period/g args
+mkdir tmp
+mkdir tmp/instant_SR_CR_DR
+mkdir src
 
 ./calmdz2.69.e < args
