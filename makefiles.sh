@@ -32,14 +32,9 @@ COMPILO=$IFORT
 NETCDFLIB=/opt/netcdf/$COMPILO/lib
 NETCDFINC=/opt/netcdf/$COMPILO/include
 
-#NETCDFLIB=/homedata/gcesana/local/ifort/netcdf-4.1.1/lib
-#NETCDFINC=/homedata/gcesana/local/ifort/netcdf-4.1.1/include
-
 ### Specify where the headers and libraries of your HDF package reside.
 HDFLIB=/usr/lib64/hdf
 HDFINC=/usr/include/hdf
-
-
 
 ### Specify the filename
 NAME=$1
@@ -57,6 +52,7 @@ nol=$3
 
 ### Choose your execution mode { PROD | DEVEL }
 ### PROD is fast, DEVEL allows for more checking and error tracking
+### FIXME : this does not work ! DEVEL = runtime check failure
 MODE="PROD"
 
 ### If you use the Fedora Core 4 GNU/Linux distribution, you may
@@ -64,7 +60,6 @@ MODE="PROD"
 #   If this is the case, you should disable it.
 #   Otherwise just comment out the following line to get the maximum
 #   performance of CHIMERE.
-#FC4_BUG = -no-ipo
 FC4_BUG=-no-ipo
 
 
