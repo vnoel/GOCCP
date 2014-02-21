@@ -30,7 +30,7 @@ cd $output
 sed -i s/LISTNAME/$liste/g args 
 sed -i s/PERIOD_ID/$period/g args
 mkdir tmp
-mkdir tmp/instant_SR_CR_DR
+mkdir instant_SR_CR_DR
 mkdir src
 
 ./calmdz2.69.e < args
