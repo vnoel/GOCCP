@@ -655,6 +655,7 @@ program calmdz
 !                                                                            !
 !----------------------------------------------------------------------------!
 !               daily fraction : dim=(lonmax,latmax,altmax,day)              !
+
 !****************************************************************************!
 !   uncertfractday   : uncertfraction averaged on LMDZ/CFMIP/NASA grid day by!
 !                      day.                                                  !
@@ -693,6 +694,7 @@ program calmdz
 !                                                                            !
 !----------------------------------------------------------------------------!
 !                daily isccp : dim=(lonmax,latmax,daymax)                    !
+
 !****************************************************************************!
 !   isccplowday     : isccplow averaged on LMDZ/CFMIP/NASA grid              !
 !   isccpmidday     : isccpmid averaged on LMDZ/CFMIP/NASA grid              !
@@ -2337,17 +2339,18 @@ endif
 
 
 
-  do  iz=1,altmax  
-    if(cloudfraction(iz,i).gt.0.)then
-icewaterres=watercloud(iz,i)+icecloud(iz,i)+uncloud(iz,i,1)+uncloud(iz,i,4)+uncloud(iz,i,5)
-if((icewaterres.gt.1.).or.(icewaterres.eq.0.))then 
-print *, 'error sum phase=',icewaterres
-print *, watercloud(iz,i),icecloud(iz,i),uncloud(iz,i,:)
-stop
-endif
+do  iz=1,altmax  
+	if(cloudfraction(iz,i).gt.0.)then
+		icewaterres=watercloud(iz,i)+icecloud(iz,i)+uncloud(iz,i,1)+uncloud(iz,i,4)+uncloud(iz,i,5)
+		if((icewaterres.gt.1.).or.(icewaterres.eq.0.))then 
+			print *, 'error sum phase=',icewaterres
+			print *, watercloud(iz,i),icecloud(iz,i),uncloud(iz,i,:)
+			!fixme
+			!stop
+		endif
      
-endif
-  enddo
+	endif
+	enddo
 
 
 
@@ -2885,7 +2888,6 @@ enddo
   file4='SR_CR_DEPOL_200'//datec//'_'//trim(switch)//'_'//trim(gcm)//'_'//    &
   trim(ADJUSTL(numfichc))//'.nc'
 
-
   call SR_CR_DR_2nc(file4,altmid,altmod,resd,altmax,switch,gcm,comptpf,latwrf,lonwrf,SEwrf,temps2wrf,&
                   SRwrf,CRwrf,DEPOLwrf)
 
@@ -2917,6 +2919,8 @@ deallocate(temps2,temps2wrf,stat = OK_buffer)
 deallocate(lonwrf,latwrf,SRwrf,CRwrf,DEPOLwrf)
 
 
+! end of select "wrf"
+
 !continue 
 
 
@@ -2947,11 +2951,17 @@ enddo
 
 
 !**************************** LMDZ OUTPUT FORMAT ****************************!
- CASE ("lmdz")
-goto 666
+CASE ("lmdz")
 
- CASE DEFAULT
+  print 'model==lmdz, daily files creation skipped.'
+  goto 666
 
+CASE DEFAULT
+
+  ! model is not in [lmdz, chimere, wrf] - should never happen
+
+  print *,'invalid select'
+  stop
 
 ENDSELECT
 
@@ -5312,9 +5322,9 @@ endif
  fracttot=frac1(iz,i)+frac2(iz,i)+frac3(iz,i)+frac4(iz,i)+frac5(iz,i)+       &
           frac6(iz,i)+frac7(iz,i) !check = 1
   if (fracttot.ne.1) then
-     print *, "fraction error"
-     print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
-                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i)
+!      print *, "fraction error"
+!      print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+!                         frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i)
   endif
 enddo
 end subroutine fraction_subgrid2
@@ -5599,9 +5609,9 @@ endif
  fracttot=frac1(iz,i)+frac2(iz,i)+frac3(iz,i)+frac4(iz,i)+frac5(iz,i)+       &
           frac6(iz,i)+frac7(iz,i) !check = 1
   if (fracttot.ne.1) then
-     print *, "fraction error"
-     print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
-                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i), i,iz,var(iz,i)
+!      print *, "fraction error"
+!      print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+!                         frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i), i,iz,var(iz,i)
 
   endif
 enddo
@@ -5859,9 +5869,9 @@ endif
  fracttot=frac1(iz,i)+frac2(iz,i)+frac3(iz,i)+frac4(iz,i)+frac5(iz,i)+       &
           frac6(iz,i)+frac7(iz,i) !check = 1
   if (fracttot.ne.1) then
-     print *, "fraction error"
-     print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
-                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i), i,iz,var(iz,i)
+!      print *, "fraction error"
+!      print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+!                         frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i), i,iz,var(iz,i)
 
   endif
 enddo
