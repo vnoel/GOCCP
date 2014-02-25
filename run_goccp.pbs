@@ -22,15 +22,19 @@ suffix=${PBS_JOBID%%"."*}
 output=$liste.$suffix
 mkdir $output
 period=${liste%%"_"*}
-cp calmdz2.70.e $output/
-cp CFMIP2.p $output/
-cp args.init $output/args
-cp -r grilles_lmdz $output/
-cp -r Liste $output/
 
 cd $output
+
+ln -s ../CFMIP2.p .
+ln -s ../grilles_lmdz .
+ln -s ../Liste .
+
+cp ../calmdz2.70.e .
+cp ../args.init args
+
 sed -i s/LISTNAME/$liste/g args 
 sed -i s/PERIOD_ID/$period/g args
+
 mkdir instant
 
 ./calmdz2.70.e < args
