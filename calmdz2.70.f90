@@ -3064,8 +3064,8 @@ endif
 !----------------------------------------------------------------------------!
 
 SELECT CASE (model)
- CASE ("lmdz")
 
+ CASE ("lmdz")
 
 !****************************************************************************!
 !*!!!!!!!!!!!!!! PART I : CLOUDY LOW MID HIGH MAP FILES !!!!!!!!!!!!!!!!!!!!*!
@@ -3664,22 +3664,21 @@ enddo
 
 !***************************** SAVE THE MAP FILES ***************************!
 
+! MapLowMidHigh_
+
 file8=trim(file6)//'.nc'    ! name of output ncdf map file
 file9=trim(file3(25:55))    ! period of map file (description of ncdf file)
 
-
-
- call create_mapnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
- call map_recvar2nc2(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
+call create_mapnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
+call map_recvar2nc2(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
                      monthcolclear,dimidsm,file8,lonmax-1,latmax-1)
 
+! MapHigh_
 
 file8=trim(file66)//'.nc'    ! name of output ncdf map file
-file9=trim(file3(25:55))    ! period of map file (description of ncdf file)
 
- call create_maphighnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
- call maphigh(monthisccphigh,monthheight,monthheight2,dimidsm,file8,lonmax-1,latmax-1)
-
+call create_maphighnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
+call maphigh(monthisccphigh,monthheight,monthheight2,dimidsm,file8,lonmax-1,latmax-1)
 
 ! Change NaN value from -9999 to -999 to fit with the GEWEX standard
 forall(ilon=1:lonmax-1, ilat=1:latmax-1, monthisccplow(ilon,ilat)==-9999.)
@@ -3696,23 +3695,23 @@ monthcolcloud(ilon,ilat)=-999
 endforall
 
 
-
+! MapLowMidHigh_Phase
 
 file8=trim(file11)//'.nc'    ! name of output ncdf map file
-
-
-
- call create_mapnc_phase(file8,file9,lonmid,latmid,resd,dimidsm,dimidsm2,gcm,lonmax-1,latmax-1)
-
-
- call map_recvar2nc2phaseocc2(monthisccpliq,monthisccpice,monthisccpun,        &
+print *,file8,file9
+print *,'Calling create_mapnc_phase'
+call create_mapnc_phase(file8,file9,lonmid,latmid,resd,dimidsm,dimidsm2,gcm,lonmax-1,latmax-1)
+print *,'Calling map_recvar2nc2phaseocc2, catmax=', catmax
+call map_recvar2nc2phaseocc2(monthisccpliq,monthisccpice,monthisccpun,        &
                               monthisccpphase,dimidsm,dimidsm2,file8,          &
-                              lonmax-1,latmax-1)
+                              lonmax-1,latmax-1, catmax)
 
 
 ! Deallocate daily & monthly map variables
 print *, 'deallocate daily & monthly map variables'
 
+! fixme : here we are in the "case("lmdz")" section of the select(model). 
+! model is always == 'lmdz' (sauf erreur !)
 if(model=='lmdz')then
   deallocate(hlow,hmid,hhigh,hcol,hheight)
   deallocate(monthisccplow,monthisccpmid,monthisccphigh)
@@ -4310,24 +4309,22 @@ print *, 'deallocate daily & monthly diagSR variables'
 
 
 if(model=='lmdz')then
-   deallocate(latmod,lonmod,prestop,altmod,srmod,pr2mod,atbrmod,srdepmod,depolmod,lonmid,latmid,altmid,tempmod,stat = OK_buffer) !crmod
+  deallocate(latmod,lonmod,prestop,altmod,srmod,pr2mod,atbrmod,srdepmod,depolmod,lonmid,latmid,altmid,tempmod,stat = OK_buffer) !crmod
 endif
 
  close(1)
 
-
- CASE ("chimere")
-continue
+CASE ("chimere")
+  continue
  
- CASE ("wrf")
-   deallocate(latmod,lonmod,prestop,altmod,srmod,lonmid,latmid,altmid,stat = OK_buffer) !crmod
-   close(1)
- 
+CASE ("wrf")
+  deallocate(latmod,lonmod,prestop,altmod,srmod,lonmid,latmid,altmid,stat = OK_buffer) !crmod
+  close(1)
 
- CASE DEFAULT
-print *, "error" 
+CASE DEFAULT
+  print *, "error" 
 
-ENDSELECT
+END SELECT
 
  102  format(f10.2,3e13.5)
  103  format((2x,f10.2),5(2x,e13.5))
@@ -4374,7 +4371,8 @@ contains
 !****************************************************************************!
 !****************************************************************************!
 
-
+! reading routines put the data directly into variables defined in the main program.
+! extracting them into their own file will require a common block (urg)
 
 !----------------------------------------------------------------------------!
 ! **** SDSREAD8 ****  This routine allows to read 8-bit SDS-variable on hdf  !
@@ -4528,7 +4526,7 @@ subroutine metaread(var,varname,filename)
 	integer 	:: ret, istat, OK_buffer
 	integer		:: file_id, vdata_ref, vdata_id
 
-        character       :: varname*30
+  character :: varname*30
 	character	:: filename*1024
 
 	

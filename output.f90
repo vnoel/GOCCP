@@ -952,7 +952,7 @@ real,parameter  ::   nan=-9999.
 
     call check(nf90_close(ncid))
 
-endsubroutine instant_phase
+end subroutine instant_phase
 
 
 subroutine SR_DEPOL_2nc(fname,vprestop,vtime,alt,daynight,mod,nprof,lati,    &
@@ -1138,7 +1138,7 @@ subroutine prof_recvar2nc(cloud,clear,uncer,dim,fname,alt,nlon,nlat)!nan,se,sat
    
     call check(nf90_close(ncid))
 
-endsubroutine prof_recvar2nc
+end subroutine prof_recvar2nc
 !----------------------------------------------------------------------------!
 
 subroutine temp_recvar2nc(cloud,liq,ice,phase,dim,fname,alt,nlon,nlat)
@@ -1188,7 +1188,7 @@ subroutine temp_recvar2nc(cloud,liq,ice,phase,dim,fname,alt,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-endsubroutine temp_recvar2nc
+end subroutine temp_recvar2nc
 !----------------------------------------------------------------------------!
 
 
@@ -1227,7 +1227,7 @@ subroutine depol_recvar2nc(ice,water,dim,fname,alt,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-endsubroutine depol_recvar2nc
+end subroutine depol_recvar2nc
 !----------------------------------------------------------------------------!
 
 subroutine depol_recvar2ncocc(ice,water,un,phase,ind,dim,dim2,fname,alt,nlon,nlat)
@@ -1280,7 +1280,7 @@ subroutine depol_recvar2ncocc(ice,water,un,phase,ind,dim,dim2,fname,alt,nlon,nla
 
     call check(nf90_close(ncid))
 
-endsubroutine depol_recvar2ncocc
+end subroutine depol_recvar2ncocc
 !----------------------------------------------------------------------------!
 subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)
     use netcdf
@@ -1338,7 +1338,7 @@ subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-endsubroutine record_ind3d
+end subroutine record_ind3d
 !----------------------------------------------------------------------------!
 
 
@@ -1812,7 +1812,7 @@ subroutine map_recvar2nc2(low,mid,high,colcloud,colclear, &
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc2
+end subroutine map_recvar2nc2
 !----------------------------------------------------------------------------!
 
 subroutine create_maphighnc(fname,dname,vlon,vlat,vtime,dim,grid,nlon,nlat)
@@ -1932,7 +1932,7 @@ subroutine maphigh(high,top,base,dim,fname,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-endsubroutine maphigh
+end subroutine maphigh
 
 
 subroutine map_recvar2nc2phase(liq,ice,dim,fname,nlon,nlat)
@@ -2021,7 +2021,7 @@ subroutine map_recvar2nc2phase(liq,ice,dim,fname,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc2phase
+end subroutine map_recvar2nc2phase
 !----------------------------------------------------------------------------!
 
 subroutine map_recvar2nc2phaseocc(liq,ice,indlow,indmid,indtot,dim,fname,nlon,nlat)
@@ -2132,7 +2132,7 @@ subroutine map_recvar2nc2phaseocc(liq,ice,indlow,indmid,indtot,dim,fname,nlon,nl
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc2phaseocc
+end subroutine map_recvar2nc2phaseocc
 !----------------------------------------------------------------------------!
 
 
@@ -2205,7 +2205,7 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
     call check(nf90_put_att(ncid, varid28, 'units','Fraction'))
     call check(nf90_put_att(ncid, varid28, '_FillValue',nan))
 
-
+    print *,'step2'
 
  
     call check(nf90_def_var(ncid, 'cllcalipso_un', NF90_FLOAT, dim2, varid1))
@@ -2259,7 +2259,7 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
 
     call check(nf90_enddef(ncid))
 
-
+    print *,'step3'
 
 
     call check(nf90_put_var(ncid, varid21, liq(:,:,1)))
@@ -2286,7 +2286,9 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc2phaseocc2
+    print *,'done with this shit'
+
+end subroutine map_recvar2nc2phaseocc2
 !----------------------------------------------------------------------------!
 
 
@@ -2449,7 +2451,7 @@ enddo
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc3
+end subroutine map_recvar2nc3
 !----------------------------------------------------------------------------!
 
 subroutine map_recvar2nc7(low,mid,high,colcloud,height,indtot,&
@@ -2673,7 +2675,7 @@ enddo
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc7
+end subroutine map_recvar2nc7
 
 
 
@@ -2847,7 +2849,7 @@ enddo
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc6
+end subroutine map_recvar2nc6
 !----------------------------------------------------------------------------!
 
 
@@ -3032,7 +3034,7 @@ print *, 'f_ ok'
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc4
+end subroutine map_recvar2nc4
 !----------------------------------------------------------------------------!
 
 
@@ -3222,7 +3224,7 @@ print *, 'file gewex1'
 
     call check(nf90_close(ncid))
 
-endsubroutine map_recvar2nc5
+end subroutine map_recvar2nc5
 !----------------------------------------------------------------------------!
 
 
