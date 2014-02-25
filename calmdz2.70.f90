@@ -1243,7 +1243,7 @@ if(file2(67:70)/="Laun")then
             day=date-int(date/10000)*10000-month*100       ! day
             jour=day
             print *, 'Processing for the ',day,'/',month,'/',year
-            print *, 'File type = Prov'
+            print *, 'File type = Prov or ValStage'
 
 else 
 
@@ -2345,7 +2345,7 @@ do  iz=1,altmax
 			print *, 'error sum phase=',icewaterres
 			print *, watercloud(iz,i),icecloud(iz,i),uncloud(iz,i,:)
 			!fixme
-			!stop
+			stop
 		endif
      
 	endif
@@ -2731,7 +2731,7 @@ endif
             if(indday(ilat,ilon,ialt,jour).lt.sum(uncloudfractday(ilat,ilon,ialt,jour,:)))then
                print *, 'error indice < un_cloud',i,ialt
                ! FIXME
-               !stop
+               stop
             endif
         
             endif
@@ -3698,10 +3698,7 @@ endforall
 ! MapLowMidHigh_Phase
 
 file8=trim(file11)//'.nc'    ! name of output ncdf map file
-print *,file8,file9
-print *,'Calling create_mapnc_phase'
 call create_mapnc_phase(file8,file9,lonmid,latmid,resd,dimidsm,dimidsm2,gcm,lonmax-1,latmax-1)
-print *,'Calling map_recvar2nc2phaseocc2, catmax=', catmax
 call map_recvar2nc2phaseocc2(monthisccpliq,monthisccpice,monthisccpun,        &
                               monthisccpphase,dimidsm,dimidsm2,file8,          &
                               lonmax-1,latmax-1, catmax)
