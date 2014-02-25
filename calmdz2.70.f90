@@ -334,7 +334,6 @@
 
 program calmdz
 
-  use netcdf
   implicit none
 
 
