@@ -2,17 +2,10 @@
 unset LANG
 ulimit -s unlimited
 
-house=`pwd`
-home='./'
-#-*-makefile-*-
-
 ### Specify your compiler
 IFORT="ifort"
 G95="pgf90"
 COMPILO=$IFORT
-
-### This header file is automatically included in the secondary Makefiles.
-### Please tune it to your own installation
 
 ### Specify where the headers and libraries of your netCDF package reside.
 # Example : 
@@ -38,7 +31,9 @@ HDFINC=/usr/include/hdf
 
 ### Specify the filename
 NAME=$1
+# build instant files or not ?
 instant=$2
+# no overlap mode (0/1)
 nol=$3
 
 ### Clean the execute file
@@ -107,4 +102,3 @@ ${COMPILO} $NAME.tmp.f90 output.f90 surface.f90 vertical_mean.f90 subgrid.f90 si
 
 # Clean trash
 rm -f $NAME.tmp.f90
-
