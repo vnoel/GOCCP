@@ -444,7 +444,7 @@ program calmdz
       character  ::  model*30, filetmp*1024, filetmp2*1024,instantname*1024
       character  ::  metal*30,metam*30
       character  ::  command*1024, command2*1024, command3*1024,command4*1024
-      character  ::  sauve*3,gcm*8, idiagc*2, idepc*2
+      character  ::  sauve*30,gcm*8, idiagc*2, idepc*2
       character  ::  sds_varname*100
       character  ::  switch*5, alt_pres*8, switch2*6,instant_switch*8
       character  ::  datec*6, numfichc*4, yearc*4
@@ -485,7 +485,7 @@ program calmdz
       integer, parameter  ::  diagmax = 19 , diagmax2 = 11, depolmax = 21
       integer, parameter  ::  daymax = 31, pr2max=301, permax=241, tempmax=39
       integer  ::  toplowl,topmidl,tophighl,toplvlsat1,toplvlsat2
-      integer  ::  altstart,altend,nol
+      integer  ::  altstart,altend,nol = 0
                   
                      
 !----------------------------------------------------------------------------!
@@ -2714,9 +2714,6 @@ endif
             uncloudfractday(ilat,ilon,ialt,jour,icat)+uncloud(ialt,i,icat)
             enddo
 
-
-        
-           
             if((nanfraction(ialt,i).ne.1).and.(sefraction(ialt,i).ne.1).and.(satfraction(ialt,i).ne.1).and.(rejfraction(ialt,i).ne.1))then
             indday(ilat,ilon,ialt,jour)=indday(ilat,ilon,ialt,jour)+1
 
