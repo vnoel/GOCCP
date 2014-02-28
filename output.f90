@@ -2,7 +2,6 @@
 !*!!!!!!!!!!!!!!!!!!!!!!! NETCDF RECORDING SUBROUTINE !!!!!!!!!!!!!!!!!!!!!!*!
 !****************************************************************************!
 
-
 !----------------------------------------------------------------------------!
 ! *** CHECK *** This subroutine check the status of the nf90 command         !
 !----------------------------------------------------------------------------!
@@ -12,7 +11,7 @@ subroutine check(status)
     integer, intent ( in) :: status
     
     if(status /= nf90_noerr) then 
-      print *, nf90_strerror(status)
+      print *, trim(nf90_strerror(status))
       stop "Stopped"
     end if
 
@@ -79,7 +78,7 @@ subroutine create_profnc(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vtime
 
   
     call date_and_time(date,time,zone,value)
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
                'GOCCP_Three-dimensionnal_Cloud_Fraction_file'))
@@ -170,7 +169,7 @@ subroutine create_temp3d(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,  &
 
   
     call date_and_time(date,time,zone,value)
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
                'GOCCP_Three-dimensionnal_Cloud_Fraction_file'))
@@ -268,7 +267,7 @@ vcat(5,:)='Unphysical value (NOISE)'
 
   
     call date_and_time(date,time,zone,value)
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
                'GOCCP_Three-dimensionnal_CloudFraction_Phase_file'))
@@ -375,7 +374,7 @@ vcat(5,:)='Unphysical value (NOISE)'
 
   
     call date_and_time(date,time,zone,value)
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
                'GOCCP_Three-dimensionnal_CloudFraction_Phase_file'))
@@ -528,7 +527,7 @@ subroutine instantSR2nc(fname,vprestop_mid,vprestop_bound,vtime,alt,daynight,mod
 fname2=fname(12:25)
 
     call date_and_time(date,time,zone,value)
-    call check(nf90_create('/bdd/CFMIP/GOCCP/instant_SR/temp/'//fname,     &
+    call check(nf90_create('./out/instant/'//fname,     &
                NF90_CLOBBER, nc_id))
 
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
@@ -636,7 +635,7 @@ subroutine SR_CR_DR_2nc(fname,vprestop_mid,vprestop_bound,vtime,alt,daynight,mod
 fname2=fname(18:39)
 
     call date_and_time(date,time,zone,value)
-    call check(nf90_create('/bdd/CFMIP/GOCCP/instant_SR_CR_DR/temp/'//fname,     &
+    call check(nf90_create('./out/instant/'//fname,     &
                NF90_CLOBBER, nc_id))
 
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
@@ -762,10 +761,11 @@ subroutine SR_CR_DR_ATB_nc(fname,vprestop_mid,vprestop_bound,vtime,alt,      &
     real,dimension(alt)  ::  vprestop_mid
     real,dimension(alt,2)  ::  vprestop_bound
 
-    fname2=fname(18:39)
+fname2=fname(18:39)
 
     call date_and_time(date,time,zone,value)
-    call check(nf90_create(fname, NF90_CLOBBER, nc_id))
+    call check(nf90_create('./out/instant/'//fname,     &
+               NF90_CLOBBER, nc_id))
 
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
                'GOCCP_instant_SR_DR_CR_file'))
@@ -919,7 +919,9 @@ end subroutine SR_CR_DR_ATB_nc
 
 
 subroutine instant_phase(fname,nalt,nprof,phase)
+
 use netcdf
+
 implicit none
 character(len=*)  ::  fname
 integer,dimension(2)  ::  dimm
@@ -928,10 +930,14 @@ integer  ::  nalt,nprof
 real*4  ::  phase(nalt,nprof)
 real,parameter  ::   nan=-9999.
 
+!print *, 'instant phase routine'
 
-  call check(NF90_OPEN('/bdd/CFMIP/GOCCP/instant_SR_CR_DR/temp/'//trim(fname),NF90_WRITE,ncid))
+!print *, trim(fname)
+!print *, '/bdd/CFMIP/GOCCP/instant_SR_CR_DR/temp/'//trim(fname)
 
-  call check(NF90_REDEF(ncid))
+    call check(NF90_OPEN('./out/instant/'//trim(fname),NF90_WRITE,ncid))
+
+call check(NF90_REDEF(ncid))
 
     call check(nf90_inq_dimid(ncid, 'altitude',  alt_dimid))
     call check(nf90_inq_dimid(ncid, 'it', it_dimid))
@@ -952,12 +958,13 @@ real,parameter  ::   nan=-9999.
 
     call check(nf90_close(ncid))
 
-end subroutine instant_phase
+endsubroutine instant_phase
 
 
 subroutine SR_DEPOL_2nc(fname,vprestop,vtime,alt,daynight,mod,nprof,lati,    &
                         longi,SEi,timei,SR,DEPOL)
-
+!!$  call SR_DEPOL_2nc(file4,altmod,resd,altmax,switch,gcm,it,lat,lon,SE,temps2,&
+!!$                  srmoy,depolmoy)
     use netcdf
     implicit none
 
@@ -977,11 +984,12 @@ subroutine SR_DEPOL_2nc(fname,vprestop,vtime,alt,daynight,mod,nprof,lati,    &
     real,dimension(alt)  ::  vprestop
     real*4,dimension(alt,nprof)  ::  SR,DEPOL
     real,parameter  ::   nan=-9999.
+    
 
 fname2=fname(12:26)
 
     call date_and_time(date,time,zone,value)
-    call check(nf90_create('/bdd/CFMIP_TEMP/DEPOL/'//fname,     &
+    call check(nf90_create('./out/tmp/'//fname,     &
                NF90_CLOBBER, nc_id))
 
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
@@ -1062,6 +1070,15 @@ end subroutine SR_DEPOL_2nc
 
 
 
+
+
+
+
+
+
+
+
+
 !----------------------------------------------------------------------------!
 ! *** PROF_RECVAR2NC *** This routine record the prof variables in the netcdf!
 !                        prof file                                           !
@@ -1105,7 +1122,7 @@ subroutine prof_recvar2nc(cloud,clear,uncer,dim,fname,alt,nlon,nlat)!nan,se,sat
     character(LEN=*)   ::  fname
     real*4,dimension(nlon,nlat,alt)  ::  cloud,clear,uncer!,sat,nan,se
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
     call check(nf90_redef(ncid))
 
     call check(nf90_def_var(ncid, 'clcalipso', NF90_FLOAT, dim, varid3))
@@ -1120,7 +1137,11 @@ subroutine prof_recvar2nc(cloud,clear,uncer,dim,fname,alt,nlon,nlat)!nan,se,sat
     call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
     call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
 
- 
+   ! call check(nf90_def_var(ncid, 'monthsatfract', NF90_FLOAT, dim, varid5))
+   ! call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+   !            'Full Attenuated fraction monthly mean'))
+   ! call check(nf90_put_att(ncid, varid5, 'units','1 fraction'))
+   ! call check(nf90_put_att(ncid, varid5, '_FillValue',nanb))
 
    call check(nf90_def_var(ncid, 'uncalipso', NF90_FLOAT, dim, varid6))
     call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
@@ -1128,20 +1149,51 @@ subroutine prof_recvar2nc(cloud,clear,uncer,dim,fname,alt,nlon,nlat)!nan,se,sat
     call check(nf90_put_att(ncid, varid6, 'units','1 fraction'))
    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
 
+!    call check(nf90_def_var(ncid, 'monthnanfract', NF90_FLOAT, dim, varid7))
+!    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+!               'Missing value fraction monthly mean'))
+!    call check(nf90_put_att(ncid, varid7, 'units','1 fraction'))
+ !   call check(nf90_put_att(ncid, varid7, '_FillValue',nanb))
+
+ !   call check(nf90_def_var(ncid, 'monthsefract', NF90_FLOAT, dim, varid8))
+ !   call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+ !              'Surface Elevation fraction monthly mean'))
+ !   call check(nf90_put_att(ncid, varid8, 'units','1 fraction'))
+ !   call check(nf90_put_att(ncid, varid8, '_FillValue',nanb))
+
+!!$    call check(nf90_def_var(ncid, 'monthindphase', NF90_FLOAT, dim, varid9))
+!!$    call check(nf90_put_att(ncid, varid9, 'lon_name','indice of water Phase monthly mean'))
+!!$    call check(nf90_put_att(ncid, varid9, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid9, '_FillValue',nanb))
+!!$  
+!!$    call check(nf90_def_var(ncid, 'monthatbmoy', NF90_FLOAT, dim, varid1))
+!!$    call check(nf90_put_att(ncid, varid1, 'lon_name','Total Attenuated Backscatter 532 monthly mean'))
+!!$    call check(nf90_put_att(ncid, varid1, 'units','per kilometer per steradian'))
+!!$    call check(nf90_put_att(ncid, varid1, '_FillValue',nanb))
+!!$
+!!$    call check(nf90_def_var(ncid, 'monthatbmolmoy', NF90_FLOAT, dim, varid2))
+!!$    call check(nf90_put_att(ncid, varid2, 'lon_name','Molecular Total Attenuated Backscatter monthly mean'))
+!!$    call check(nf90_put_att(ncid, varid2, 'units','per kilometer per steradian'))
+!!$    call check(nf90_put_att(ncid, varid2, '_FillValue',nanb))
 
     call check(nf90_enddef(ncid))
 
     call check(nf90_put_var(ncid, varid3, cloud))
     call check(nf90_put_var(ncid, varid4, clear))
- 
+  !  call check(nf90_put_var(ncid, varid5, sat))
     call check(nf90_put_var(ncid, varid6, uncer))
-   
+   ! call check(nf90_put_var(ncid, varid7, nan))
+   ! call check(nf90_put_var(ncid, varid8, se))
+!!$    call check(nf90_put_var(ncid, varid1, pr2moy))
+!!$    call check(nf90_put_var(ncid, varid2, molmoy))
+!!$    call check(nf90_put_var(ncid, varid9, phase))
+
     call check(nf90_close(ncid))
 
-end subroutine prof_recvar2nc
+endsubroutine prof_recvar2nc
 !----------------------------------------------------------------------------!
 
-subroutine temp_recvar2nc(cloud,liq,ice,phase,dim,fname,alt,nlon,nlat)
+subroutine temp_recvar2nc(cloud,liq,ice,phase,dim,fname,alt,nlon,nlat)!nan,se,sat
     use netcdf
     implicit none
 
@@ -1150,9 +1202,9 @@ subroutine temp_recvar2nc(cloud,liq,ice,phase,dim,fname,alt,nlon,nlat)
     integer  ::  nlon , nlat,dim(ndims),alt
     integer  ::  varid3,varid4,varid5,varid6,varid7,varid8, ncid
     character(LEN=*)   ::  fname
-    real*4,dimension(nlon,nlat,alt)  ::  cloud,ice,liq,phase
+    real*4,dimension(nlon,nlat,alt)  ::  cloud,ice,liq,phase !,sat,nan,se
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
     call check(nf90_redef(ncid))
 
     call check(nf90_def_var(ncid, 'cltemp', NF90_FLOAT, dim, varid3))
@@ -1188,11 +1240,11 @@ subroutine temp_recvar2nc(cloud,liq,ice,phase,dim,fname,alt,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-end subroutine temp_recvar2nc
+endsubroutine temp_recvar2nc
 !----------------------------------------------------------------------------!
 
 
-subroutine depol_recvar2nc(ice,water,dim,fname,alt,nlon,nlat)
+subroutine depol_recvar2nc(ice,water,dim,fname,alt,nlon,nlat)!nan,se,sat
     use netcdf
     implicit none
 
@@ -1201,9 +1253,9 @@ subroutine depol_recvar2nc(ice,water,dim,fname,alt,nlon,nlat)
     integer  ::  nlon , nlat,dim(ndims),alt
     integer  ::  varid3,varid4,varid5,varid6,varid7,varid8, ncid
     character(LEN=*)   ::  fname
-    real*4,dimension(nlon,nlat,alt)  ::  ice,water
+    real*4,dimension(nlon,nlat,alt)  ::  ice,water!,ind !,sat,nan,se
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
     call check(nf90_redef(ncid))
 
     call check(nf90_def_var(ncid, 'ice_cloud', NF90_FLOAT, dim, varid3))
@@ -1218,19 +1270,24 @@ subroutine depol_recvar2nc(ice,water,dim,fname,alt,nlon,nlat)
     call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
     call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
 
+!!$    call check(nf90_def_var(ncid, 'ind_phase', NF90_FLOAT, dim, varid5))
+!!$    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+!!$               'CALIPSO 3D Indice Phase fraction'))
+!!$    call check(nf90_put_att(ncid, varid5, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
  
     call check(nf90_enddef(ncid))
 
     call check(nf90_put_var(ncid, varid3, ice))
     call check(nf90_put_var(ncid, varid4, water))
-
+!    call check(nf90_put_var(ncid, varid5, ind))
 
     call check(nf90_close(ncid))
 
-end subroutine depol_recvar2nc
+endsubroutine depol_recvar2nc
 !----------------------------------------------------------------------------!
 
-subroutine depol_recvar2ncocc(ice,water,un,phase,ind,dim,dim2,fname,alt,nlon,nlat)
+subroutine depol_recvar2ncocc(ice,water,un,phase,ind,dim,dim2,fname,alt,nlon,nlat)!nan,se,sat
     use netcdf
     implicit none
 
@@ -1242,7 +1299,7 @@ subroutine depol_recvar2ncocc(ice,water,un,phase,ind,dim,dim2,fname,alt,nlon,nla
     real*4,dimension(nlon,nlat,alt)  ::  ice,water,phase,ind
     real*4,dimension(nlon,nlat,alt,ncat)  ::  un  
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
     call check(nf90_redef(ncid))
 
     call check(nf90_def_var(ncid, 'clcalipso_ice', NF90_FLOAT, dim, varid3))
@@ -1270,19 +1327,28 @@ subroutine depol_recvar2ncocc(ice,water,un,phase,ind,dim,dim2,fname,alt,nlon,nla
     call check(nf90_put_att(ncid, varid9, '_FillValue',nan))
     call check(nf90_put_att(ncid, varid9, 'Other_Phase',rej))
 
-
+!!$    call check(nf90_def_var(ncid, 'ind', NF90_FLOAT, dim, varid8))
+!!$    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+!!$               'CALIPSO 3D Indice Phase fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+!!$ 
     call check(nf90_enddef(ncid))
 
     call check(nf90_put_var(ncid, varid3, ice))
     call check(nf90_put_var(ncid, varid4, water))
     call check(nf90_put_var(ncid, varid5, un))
     call check(nf90_put_var(ncid, varid9, phase))
+!!$     call check(nf90_put_var(ncid, varid8, ind))
 
     call check(nf90_close(ncid))
 
-end subroutine depol_recvar2ncocc
+endsubroutine depol_recvar2ncocc
 !----------------------------------------------------------------------------!
-subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)
+! call record_ind3d(sum(cloudfractday,4),sum(indday,4),sum(icecloudfractday,4), &
+!                  sum(watercloudfractday,4),sum(uncloudfractday,4),  &
+!                  dimidsp,dimidsp2,file8,altmax,lonmax-1,latmax-1)
+subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)!nan,se,sat
     use netcdf
     implicit none
 
@@ -1294,7 +1360,7 @@ subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)
     real*4,dimension(nlon,nlat,alt)  ::  tot,cloud,ice,water,phase
     real*4,dimension(nlon,nlat,alt,ncat)  ::  un  
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
     call check(nf90_redef(ncid))
 
     call check(nf90_def_var(ncid, 'clcalipso', NF90_FLOAT, dim, varid2))
@@ -1328,6 +1394,12 @@ subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)
     call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
 
 
+!!$    call check(nf90_def_var(ncid, 'ind', NF90_FLOAT, dim, varid8))
+!!$    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+!!$               'CALIPSO 3D Indice Phase occurrences'))
+!!$    call check(nf90_put_att(ncid, varid8, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+!!$ 
     call check(nf90_enddef(ncid))
 
     call check(nf90_put_var(ncid, varid2, cloud))
@@ -1338,7 +1410,7 @@ subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-end subroutine record_ind3d
+endsubroutine record_ind3d
 !----------------------------------------------------------------------------!
 
 
@@ -1412,20 +1484,19 @@ toplvl(1)=3.36
 toplvl(2)=6.72
 toplvl(3)=19.2
 
-!fixme : toplowl -> toplvl(1) etc. (I guess)
-! elseif(trim(grid).eq.'LMDZ40')then
-! toplowl = 14;       
-! topmidl = 18;      
-! tophighl = 40  
-! elseif(trim(grid).eq.'LMDZ')then
-! toplowl = 7;        
-! topmidl = 9       
-! tophighl = 19   !
+!elseif(trim(grid).eq.'LMDZ40')then
+!toplowl = 14;       
+!topmidl = 18;      
+!tophighl = 40  
+!elseif(trim(grid).eq.'LMDZ')then
+!toplowl = 7;        
+!topmidl = 9       
+!tophighl = 19   !
 endif
   
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_Low_Mid_High_file'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -1502,7 +1573,7 @@ subroutine create_mapnc_phase(fname,dname,vlon,vlat,vtime,dim,dim2,grid,nlon,nla
     real*4, dimension(nlat) :: vlat
     real,dimension(3)  ::  toplvl
     character(len=25),dimension(ncat1,ncat2)  ::  vcat
-
+!    character(len=10),dimension(ncat) :: vcat
 
 vcat(1,:)='UNDEFINED'
 vcat(2,:)='FALSE LIQ'
@@ -1523,20 +1594,19 @@ toplvl(1)=3.36
 toplvl(2)=6.72
 toplvl(3)=19.2
 
-! fixme
-! elseif(trim(grid).eq.'LMDZ40')then
-! toplowl = 14;       
-! topmidl = 18;      
-! tophighl = 40  
-! elseif(trim(grid).eq.'LMDZ')then
-! toplowl = 7;        
-! topmidl = 9       
-! tophighl = 19   
+!elseif(trim(grid).eq.'LMDZ40')then
+!toplowl = 14;       
+!topmidl = 18;      
+!tophighl = 40  
+!elseif(trim(grid).eq.'LMDZ')then
+!toplowl = 7;        
+!topmidl = 9       
+!tophighl = 19   !
 endif
   
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_Low_Mid_High_Phase_file'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -1637,20 +1707,19 @@ toplvl(1)=3.36
 toplvl(2)=6.72
 toplvl(3)=19.2
 
-! fixme
-! elseif(trim(grid).eq.'LMDZ40')then
-! toplowl = 14;       
-! topmidl = 18;      
-! tophighl = 40  
-! elseif(trim(grid).eq.'LMDZ')then
-! toplowl = 7;        
-! topmidl = 9       
-! tophighl = 19   !
+!elseif(trim(grid).eq.'LMDZ40')then
+!toplowl = 14;       
+!topmidl = 18;      
+!tophighl = 40  
+!elseif(trim(grid).eq.'LMDZ')then
+!toplowl = 7;        
+!topmidl = 9       
+!tophighl = 19   !
 endif
   
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_Low_Mid_High_file'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -1759,12 +1828,12 @@ subroutine map_recvar2nc2(low,mid,high,colcloud,colclear, &
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid8,varid9,varid10
     character(LEN=*)  ::  fname
-
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat)  ::  low, mid, high
     real*4,dimension(nlon,nlat)  ::  colcloud, colclear
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -1812,7 +1881,7 @@ subroutine map_recvar2nc2(low,mid,high,colcloud,colclear, &
 
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc2
+endsubroutine map_recvar2nc2
 !----------------------------------------------------------------------------!
 
 subroutine create_maphighnc(fname,dname,vlon,vlat,vtime,dim,grid,nlon,nlat)
@@ -1835,7 +1904,7 @@ subroutine create_maphighnc(fname,dname,vlon,vlat,vtime,dim,grid,nlon,nlat)
   
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_High_file'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -1897,11 +1966,11 @@ subroutine maphigh(high,top,base,dim,fname,nlon,nlat)
     integer  ::  nlon , nlat ,dim(ndims)
     integer  ::  varid3,varid5, varid6, ncid !
     character(LEN=*)  ::  fname
-
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat)  ::  high,top,base
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -1932,8 +2001,12 @@ subroutine maphigh(high,top,base,dim,fname,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-end subroutine maphigh
+endsubroutine maphigh
 
+
+! call map_recvar2nc2phase(monthisccpliq,monthisccpice,monthisccpho,monthisccpun,monthisccpdust, &
+!                          isccpdaypermonthlow,isccpdaypermonthmid,isccpdaypermonth,dimidsm,     &
+!                          file8,lonmax-1,latmax-1)
 
 subroutine map_recvar2nc2phase(liq,ice,dim,fname,nlon,nlat)
 
@@ -1946,11 +2019,11 @@ subroutine map_recvar2nc2phase(liq,ice,dim,fname,nlon,nlat)
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid8,varid9,varid10
     character(LEN=*)  ::  fname
-
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat,4)  ::  liq,ice
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -2021,7 +2094,7 @@ subroutine map_recvar2nc2phase(liq,ice,dim,fname,nlon,nlat)
 
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc2phase
+endsubroutine map_recvar2nc2phase
 !----------------------------------------------------------------------------!
 
 subroutine map_recvar2nc2phaseocc(liq,ice,indlow,indmid,indtot,dim,fname,nlon,nlat)
@@ -2035,13 +2108,13 @@ subroutine map_recvar2nc2phaseocc(liq,ice,indlow,indmid,indtot,dim,fname,nlon,nl
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid8,varid9,varid10,varid11
     character(LEN=*)  ::  fname
-   
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat,4)  ::  liq,ice
     real*4,dimension(nlon,nlat)  ::  indtot,indlow,indmid
 
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -2132,18 +2205,23 @@ subroutine map_recvar2nc2phaseocc(liq,ice,indlow,indmid,indtot,dim,fname,nlon,nl
 
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc2phaseocc
+endsubroutine map_recvar2nc2phaseocc
 !----------------------------------------------------------------------------!
 
 
-subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,catmax)
+subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat)
 
+!call map_recvar2nc2phaseocc2(monthisccpho,monthisccpun,monthisccpdust,isccpdaypermonthlow, &
+!                             isccpdaypermonthmid,isccpdaypermonth,dimidsm,     &
+!                             file8,lonmax-1,latmax-1)
+!
     use netcdf
     implicit none
 
     integer, parameter ::  ndims=3, ndims2=4
+	integer, parameter ::  catmax=5
     real,parameter  ::  nan=-9999.
-    integer  ::  nlon, nlat, catmax,dim(ndims),dim2(ndims2)
+    integer  ::  nlon , nlat ,dim(ndims),dim2(ndims2)
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid21,varid22,varid23,varid24,varid25, varid26,varid27, varid28
     integer  ::  varid8,varid9,varid10,varid11, varid12,varid13,varid14,varid15,varid16
@@ -2152,7 +2230,7 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
     real*4,dimension(nlon,nlat,4,catmax)  ::  un2
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -2205,7 +2283,7 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
     call check(nf90_put_att(ncid, varid28, 'units','Fraction'))
     call check(nf90_put_att(ncid, varid28, '_FillValue',nan))
 
-    print *,'step2'
+
 
  
     call check(nf90_def_var(ncid, 'cllcalipso_un', NF90_FLOAT, dim2, varid1))
@@ -2232,6 +2310,36 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
     call check(nf90_put_att(ncid, varid4, 'units','Fraction'))
     call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
 
+!!$    call check(nf90_def_var(ncid, 'cll_ho', NF90_FLOAT, dim, varid5))
+!!$    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+!!$               'Low-level HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid5, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'clm_ho', NF90_FLOAT, dim, varid6))
+!!$    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+!!$               'CALIPSO Mid-level HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid6, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'clh_ho', NF90_FLOAT, dim, varid7))
+!!$    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+!!$               'CALIPSO High-level HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid7, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'clt_ho', NF90_FLOAT, dim, varid8))
+!!$    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+!!$               'CALIPSO Total HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid8, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'cll_dust', NF90_FLOAT, dim, varid12))
+!!$    call check(nf90_put_att(ncid, varid12, 'lon_name',                        &
+!!$               'CALIPSO Low-level dust Cloud'))
+!!$    call check(nf90_put_att(ncid, varid12, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid12, '_FillValue',nan))
+
     call check(nf90_def_var(ncid, 'cllcalipso_RPIC', NF90_FLOAT, dim, varid13))
     call check(nf90_put_att(ncid, varid13, 'lon_name',                        &
                'CALIPSO Low-level Relative Percentage of Ice in Cloud'))
@@ -2257,9 +2365,27 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
     call check(nf90_put_att(ncid, varid16, '_FillValue',nan))
 
 
+
+!!$    call check(nf90_def_var(ncid, 'ind_low', NF90_FLOAT, dim, varid9))
+!!$    call check(nf90_put_att(ncid, varid9, 'lon_name',                        &
+!!$               'indice low'))
+!!$    call check(nf90_put_att(ncid, varid9, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid9, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'ind_mid', NF90_FLOAT, dim, varid10))
+!!$    call check(nf90_put_att(ncid, varid10, 'lon_name',                        &
+!!$               'indice mid'))
+!!$    call check(nf90_put_att(ncid, varid10, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid10, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'ind_tot', NF90_FLOAT, dim, varid11))
+!!$    call check(nf90_put_att(ncid, varid11, 'lon_name',                        &
+!!$               'indice high/tot'))
+!!$    call check(nf90_put_att(ncid, varid11, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid11, '_FillValue',nan))
     call check(nf90_enddef(ncid))
 
-    print *,'step3'
+
 
 
     call check(nf90_put_var(ncid, varid21, liq(:,:,1)))
@@ -2284,11 +2410,14 @@ subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat,ca
 
  
 
+!    call check(nf90_put_var(ncid, varid9, indlow(:,:)))
+!    call check(nf90_put_var(ncid, varid10, indmid(:,:)))
+!    call check(nf90_put_var(ncid, varid11, indtot(:,:)))
+
+
     call check(nf90_close(ncid))
 
-    print *,'done with this shit'
-
-end subroutine map_recvar2nc2phaseocc2
+endsubroutine map_recvar2nc2phaseocc2
 !----------------------------------------------------------------------------!
 
 
@@ -2304,10 +2433,9 @@ subroutine map_recvar2nc3(low,mid,high,colcloud,colclear,height,indtot,&
     integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2)
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
-    integer  ::  varid15,varid16,varid17
-    integer  ::  ilon, ilat
+    integer  ::  varid15,varid16,varid17, ilon, ilat
     character(LEN=*)  ::  fname
-
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat)  ::  low, mid, high
     real*4,dimension(nlon,nlat)  ::  colcloud, colclear, height
     integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
@@ -2326,6 +2454,9 @@ histmod2(:)=0;
 do ihist=1,histmax2
    histmod2(ihist+1)=histmod2(ihist)+1
 enddo
+
+
+!print *, tot(5,5),ret(5,5)
 
 do ilon=1,nlon
   do ilat=1,nlat
@@ -2374,8 +2505,16 @@ endif
 enddo
 enddo
 
+!!$do ilon=1,nlon
+!!$  do ilat=1,nlat
+!!$     do ihist=1,ihistmax-1
+!!$
+!!$        if(h_CA(ilon,ilat,ihist)
+!!$enddo
+!!$enddo
+!!$enddo
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -2434,7 +2573,7 @@ enddo
     call check(nf90_put_var(ncid, varid2, mid))
     call check(nf90_put_var(ncid, varid3, high))
     call check(nf90_put_var(ncid, varid4, colcloud))
-
+ !   call check(nf90_put_var(ncid, varid5, colclear))
     call check(nf90_put_var(ncid, varid6, height)) 
     call check(nf90_put_var(ncid, varid7, indtot)) 
     call check(nf90_put_var(ncid, varid8, f_CAL)) 
@@ -2451,7 +2590,7 @@ enddo
 
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc3
+endsubroutine map_recvar2nc3
 !----------------------------------------------------------------------------!
 
 subroutine map_recvar2nc7(low,mid,high,colcloud,height,indtot,&
@@ -2467,9 +2606,9 @@ subroutine map_recvar2nc7(low,mid,high,colcloud,height,indtot,&
     integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2),dim4(ndims2)
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
-    integer  ::  varid15,varid16,varid17
+    integer  ::  varid15,varid16,varid17, ilon, ilat
     character(LEN=*)  ::  fname
-
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat)  ::  low, mid, high
     real*4,dimension(nlon,nlat)  ::  colcloud, height
     integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
@@ -2484,7 +2623,6 @@ subroutine map_recvar2nc7(low,mid,high,colcloud,height,indtot,&
     real*4,dimension(nlon,nlat)  ::  lowtemp,midtemp,hightemp,coltemp
     integer  ::  varid27, varid28, varid29, varid30, varid18, varid19, varid20, varid21
     integer  ::  varid31, varid32, varid33, varid34
-    integer  ::  ilon, ilat
 
 
 histmod(:)=0;
@@ -2569,8 +2707,16 @@ endif
 enddo
 enddo
 
+!!$do ilon=1,nlon
+!!$  do ilat=1,nlat
+!!$     do ihist=1,ihistmax-1
+!!$
+!!$        if(h_CA(ilon,ilat,ihist)
+!!$enddo
+!!$enddo
+!!$enddo
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -2675,12 +2821,15 @@ enddo
 
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc7
+endsubroutine map_recvar2nc7
 
 
 
 subroutine map_recvar2nc6(low,mid,high,colcloud,height,indtot,&
                          hlow,hmid,hhigh,hcol,hheight,dim,dim2,dim3,fname,nlon,nlat)!,&
+!                         lowtemp,midtemp! &
+!                         hightemp,coltemp,hlowtemp,hmidtemp,hhightemp, &
+!                         hcoltemp,dim4)
 
 ! h_CA utile car 31 valeur au max...
     use netcdf
@@ -2691,10 +2840,9 @@ subroutine map_recvar2nc6(low,mid,high,colcloud,height,indtot,&
     integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2),dim4(ndims2)
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
-    integer  ::  varid15,varid16,varid17
-    integer  ::  ilon, ilat
+    integer  ::  varid15,varid16,varid17, ilon, ilat
     character(LEN=*)  ::  fname
-   
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat)  ::  low, mid, high
     real*4,dimension(nlon,nlat)  ::  colcloud, height
     integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
@@ -2724,7 +2872,7 @@ do ihist=1,histmax2
 enddo
 
 
-
+!print *, tot(5,5),ret(5,5)
 
 do ilon=1,nlon
   do ilat=1,nlat
@@ -2773,8 +2921,16 @@ endif
 enddo
 enddo
 
+!!$do ilon=1,nlon
+!!$  do ilat=1,nlat
+!!$     do ihist=1,ihistmax-1
+!!$
+!!$        if(h_CA(ilon,ilat,ihist)
+!!$enddo
+!!$enddo
+!!$enddo
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -2815,17 +2971,17 @@ enddo
     call check(nf90_put_att(ncid, varid6, 'units','1-40'))
     call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
  
- call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
- call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
- call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
- call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
- call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
+call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
+call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
+call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
+call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
+call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
 
- call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
- call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
- call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
- call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
- call check(nf90_def_var(ncid, 'h_CZ', NF90_INT4, dim3, varid17))
+call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
+call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
+call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
+call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
+call check(nf90_def_var(ncid, 'h_CZ', NF90_INT4, dim3, varid17))
 
     call check(nf90_enddef(ncid))
 
@@ -2849,7 +3005,7 @@ enddo
 
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc6
+endsubroutine map_recvar2nc6
 !----------------------------------------------------------------------------!
 
 
@@ -2875,11 +3031,10 @@ subroutine map_recvar2nc4(low,mid,high,colcloud,colclear,height,indtot,&
     real,parameter  ::  nan=-999
     integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2),dim4(ndims2)
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
-    integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
+    integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14, ilon, ilat
     integer  ::  varid15,varid16,varid17,varid18,varid19,varid20,varid21,varid22,varid23,varid24,varid25,varid26,varid27,varid28,varid29,varid30
-    integer  ::  ilon, ilat
     character(LEN=*)  ::  fname
-    
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat)  ::  low, mid, high
     real*4,dimension(nlon,nlat)  ::  colcloud, colclear, height
     real*4,dimension(nlon,nlat)  ::  lowtemp,midtemp,hightemp,coltemp
@@ -2908,6 +3063,8 @@ enddo
 
 
 print *, 'f_ begin'
+
+!print *, tot(5,5),ret(5,5)
 
 do ilon=1,nlon
   do ilat=1,nlat
@@ -2984,7 +3141,7 @@ enddo
 print *, 'f_ ok'
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -2993,15 +3150,15 @@ print *, 'f_ ok'
      call check(nf90_def_var(ncid, 'a_CTH', NF90_FLOAT, dim, varid29))
      call check(nf90_def_var(ncid, 'a_CT', NF90_FLOAT, dim, varid30))
 
- call check(nf90_def_var(ncid, 'f_CTL', NF90_INT4, dim, varid18))
- call check(nf90_def_var(ncid, 'f_CTM', NF90_INT4, dim, varid19))
- call check(nf90_def_var(ncid, 'f_CTH', NF90_INT4, dim, varid20))
- call check(nf90_def_var(ncid, 'f_CT', NF90_INT4, dim, varid21))
+call check(nf90_def_var(ncid, 'f_CTL', NF90_INT4, dim, varid18))
+call check(nf90_def_var(ncid, 'f_CTM', NF90_INT4, dim, varid19))
+call check(nf90_def_var(ncid, 'f_CTH', NF90_INT4, dim, varid20))
+call check(nf90_def_var(ncid, 'f_CT', NF90_INT4, dim, varid21))
 
- call check(nf90_def_var(ncid, 'h_CTL', NF90_INT4, dim4, varid23))
- call check(nf90_def_var(ncid, 'h_CTM', NF90_INT4, dim4, varid24))
- call check(nf90_def_var(ncid, 'h_CTH', NF90_INT4, dim4, varid25))
- call check(nf90_def_var(ncid, 'h_CT', NF90_INT4, dim4, varid26))
+call check(nf90_def_var(ncid, 'h_CTL', NF90_INT4, dim4, varid23))
+call check(nf90_def_var(ncid, 'h_CTM', NF90_INT4, dim4, varid24))
+call check(nf90_def_var(ncid, 'h_CTH', NF90_INT4, dim4, varid25))
+call check(nf90_def_var(ncid, 'h_CT', NF90_INT4, dim4, varid26))
 
 
 print *, 'def var ok'
@@ -3034,7 +3191,7 @@ print *, 'f_ ok'
 
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc4
+endsubroutine map_recvar2nc4
 !----------------------------------------------------------------------------!
 
 
@@ -3053,9 +3210,8 @@ subroutine map_recvar2nc5(low,mid,high,colcloud,height,indtot,&
     integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
     integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
     integer  ::  varid15,varid16,varid17
-    integer  ::  ilon, ilat
     character(LEN=*)  ::  fname
-   
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
     real*4,dimension(nlon,nlat)  ::  low, mid, high
     real*4,dimension(nlon,nlat)  ::  colcloud, height
     integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
@@ -3065,6 +3221,7 @@ subroutine map_recvar2nc5(low,mid,high,colcloud,height,indtot,&
     real,dimension(histmax)  ::  histmod
 
     integer  ::  varid18,varid19,varid20,varid21,varid22,varid23,varid24,varid25,varid26,varid27,varid28,varid29,varid30
+	integer  ::  ilon, ilat
 
     real*4,dimension(nlon,nlat)  ::  lowtemp,midtemp,hightemp,coltemp
 
@@ -3082,7 +3239,7 @@ do ihist=1,histmax2
 enddo
 
 
-
+!print *, tot(5,5),ret(5,5)
 
 do ilon=1,nlon
   do ilat=1,nlat
@@ -3167,7 +3324,7 @@ enddo
 
 print *, 'creation fichier'
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -3178,17 +3335,33 @@ print *, 'creation fichier'
     call check(nf90_def_var(ncid, 'a_CA', NF90_FLOAT, dim, varid4))
     call check(nf90_def_var(ncid, 'a_CZ', NF90_FLOAT, dim, varid6))
  
- call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
- call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
- call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
- call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
- call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
+call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
+call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
+call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
+call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
+call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
 
- call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
- call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
- call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
- call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
- call check(nf90_def_var(ncid, 'h_CZ', NF90_INT4, dim3, varid17))
+call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
+call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
+call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
+call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
+call check(nf90_def_var(ncid, 'h_CZ', NF90_INT4, dim3, varid17))
+
+
+!!$call check(nf90_def_var(ncid, 'f_CTL', NF90_INT4, dim, varid18))
+!!$call check(nf90_def_var(ncid, 'f_CTM', NF90_INT4, dim, varid19))
+!!$call check(nf90_def_var(ncid, 'f_CTH', NF90_INT4, dim, varid20))
+!!$call check(nf90_def_var(ncid, 'f_CT', NF90_INT4, dim, varid21))
+
+!!$call check(nf90_def_var(ncid, 'h_CTL', NF90_INT4, dim4, varid23))
+!!$call check(nf90_def_var(ncid, 'h_CTM', NF90_INT4, dim4, varid24))
+!!$call check(nf90_def_var(ncid, 'h_CTH', NF90_INT4, dim4, varid25))
+!!$call check(nf90_def_var(ncid, 'h_CT', NF90_INT4, dim4, varid26))
+!!$
+!!$call check(nf90_def_var(ncid, 'a_CTL', NF90_FLOAT, dim, varid27))
+!!$call check(nf90_def_var(ncid, 'a_CTM', NF90_FLOAT, dim, varid28))
+!!$call check(nf90_def_var(ncid, 'a_CTH', NF90_FLOAT, dim, varid29))
+!!$call check(nf90_def_var(ncid, 'a_CT', NF90_FLOAT, dim, varid30))
 
 
     call check(nf90_enddef(ncid))
@@ -3222,10 +3395,37 @@ print *, 'file gewex1'
 print *, 'file gewex1'
 
 
+!!$ call check(nf90_put_var(ncid, varid18, f_CTL)) 
+!!$ call check(nf90_put_var(ncid, varid19, f_CTM)) 
+!!$ call check(nf90_put_var(ncid, varid20, f_CTH)) 
+!!$ call check(nf90_put_var(ncid, varid21, f_CT)) 
+
+! call check(nf90_put_var(ncid, varid23, hlowtemp ))
+! call check(nf90_put_var(ncid, varid24, hmidtemp )) 
+! call check(nf90_put_var(ncid, varid25, hhightemp)) 
+! call check(nf90_put_var(ncid, varid26, hcoltemp)) 
+
+!    call check(nf90_put_var(ncid, varid27, lowtemp))
+!    call check(nf90_put_var(ncid, varid28, midtemp))
+ !   call check(nf90_put_var(ncid, varid29, hightemp))
+ !   call check(nf90_put_var(ncid, varid30, coltemp))
+
+
+
     call check(nf90_close(ncid))
 
-end subroutine map_recvar2nc5
+endsubroutine map_recvar2nc5
 !----------------------------------------------------------------------------!
+
+
+
+
+
+
+
+
+
+
 
 
 !----------------------------------------------------------------------------!
@@ -3279,10 +3479,10 @@ subroutine create_diagnc(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vsrmo
 
     character(LEN=*)   ::  fname,dname
     character  ::  date*8,time*10,zone*5
-    integer :: nlon, nlat, iz
+    integer :: nlon , nlat 
     integer, parameter :: diagmax = 19, ndims = 5, nv=2
     integer,dimension(8)  ::  value
-    integer  ::  dim(ndims),dim2(ndims),alt,dim3(nv),dim4(nv),dim5(nv)
+    integer  ::  dim(ndims),dim2(ndims),alt,dim3(nv),dim4(nv),dim5(nv), iz
     integer  ::  lon_varid,lat_varid,alt_varid, srmod_varid,time_varid,srmod_varid2,srmod_varid3,srmod_varid4,nc_id,alt_varid2,srmod_varid33,srmod_varid44
     integer  ::  lon_dimid,lat_dimid,alt_dimid,srmod_dimid,time_dimid,srmod_dimid2,srmod_dimid3,srmod_dimid4, nv_dimid,sr_dimid,sr_dimid2
     real  ::  vtime  
@@ -3320,7 +3520,7 @@ vsrmod_bound(3,2)=0
 
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Scattering_Ratio'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -3439,10 +3639,10 @@ subroutine create_diagncpha(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vs
 
     character(LEN=*)   ::  fname,dname
     character  ::  date*8,time*10,zone*5
-    integer :: nlon, nlat, iz 
+    integer :: nlon , nlat 
     integer, parameter :: diagmax = 19, ndims = 5, nv=2
     integer,dimension(8)  ::  value
-    integer  ::  dim(ndims),dim2(ndims),alt,dim3(nv),dim4(nv),dim5(nv)
+    integer  ::  dim(ndims),dim2(ndims),alt,dim3(nv),dim4(nv),dim5(nv), iz
     integer  ::  lon_varid,lat_varid,alt_varid, srmod_varid,time_varid,srmod_varid2,srmod_varid3,srmod_varid4,nc_id,alt_varid2,srmod_varid33,srmod_varid44
     integer  ::  lon_dimid,lat_dimid,alt_dimid,srmod_dimid,time_dimid,srmod_dimid2,srmod_dimid3,srmod_dimid4, nv_dimid,sr_dimid,sr_dimid2
     real  ::  vtime  
@@ -3471,7 +3671,7 @@ print *, "srmod creer"
 
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Phase_Histogram_of_Scattering_Ratio'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -3549,17 +3749,17 @@ print *, "srmod creer"
 
     call check(nf90_enddef(nc_id))
 	
-
+print *, 'titi'
     call check(nf90_put_var(nc_id, lon_varid, vlon))
     call check(nf90_put_var(nc_id, lat_varid, vlat))
     call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
     call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
 
-
+ print *, 'titi'
    call check(nf90_put_var(nc_id, srmod_varid2, vsrmod2))
     call check(nf90_put_var(nc_id, srmod_varid33, vsrmod_bound))
 
-
+print *, 'titi'
 
     call check(nf90_put_var(nc_id, time_varid, vtime))
   
@@ -3593,7 +3793,7 @@ subroutine create_diagnc2(fname,dname,vlon,vlat,vprestop,vsrmod,vtime,dim2,alt,&
 vsrmod2=vsrmod(2:19)
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Scattering_Ratio'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -3614,7 +3814,7 @@ vsrmod2=vsrmod(2:19)
     call check(nf90_def_dim(nc_id, 'box', diagmax, srmod_dimid))
     call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
   
-  
+   ! dim = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid, time_dimid/)
     dim2 = (/lon_dimid, lat_dimid, pres_dimid, time_dimid/)
 
     call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
@@ -3690,7 +3890,7 @@ vdepolmod2=vdepolmod(2:21)
 
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Depolarization_Ratio'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -3715,7 +3915,7 @@ vdepolmod2=vdepolmod(2:21)
 
     call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
   
-  
+   ! dim = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid, time_dimid/)
     dim2 = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid, time_dimid/)
 
     call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
@@ -3802,7 +4002,7 @@ vdepolmod2=vdepolmod(2:21)
 
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Depolarization_Ratio'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -3827,7 +4027,7 @@ vdepolmod2=vdepolmod(2:21)
   
     dim = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid2, depolmod_dimid2, time_dimid/)
     
-  
+   ! dim2 = (/lon_dimid, lat_dimid, pres_dimid, time_dimid/)
 
     call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
     call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
@@ -3921,7 +4121,7 @@ vcat(3,:)='VAP'
 
     call date_and_time(date,time,zone,value)
 
-    call check(nf90_create('./'//fname, NF90_CLOBBER,  &
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
                nc_id))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Phase_file'))
     call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
@@ -4034,7 +4234,7 @@ subroutine diagPHA_recvar2nc3(diagpha,dim,fname,alt,nlon,nlat)
     real,dimension(nlon,nlat,alt,tempmax,3)  ::  diagpha
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4088,7 +4288,7 @@ subroutine diag_recvar2nc(diag,diag1,dim,dim2,fname,alt,nlon,nlat)
     real*4,dimension(nlon,nlat,alt)  ::  diag1
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4126,9 +4326,9 @@ subroutine diag_recvar2nc2(diag,dim,fname,alt,nlon,nlat)
     integer  ::  varid, ncid
     character(LEN=*)   ::  fname
     real*8,dimension(nlon,nlat,alt,diagmax)  ::  diag
+ !   real*4,dimension(nlon,nlat,alt)  ::  diag1
 
-
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4159,7 +4359,7 @@ subroutine diag_recvar2nc3(diag,dim,dim2,fname,alt,nlon,nlat)
     real,dimension(nlon,nlat,alt,diagmax)  ::  diag
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4200,7 +4400,7 @@ subroutine diag_recvar2nc3pha(diag,dim,dim2,fname,alt,nlon,nlat)
     real,dimension(nlon,nlat,alt,diagmax,3)  ::  diag
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4248,7 +4448,7 @@ subroutine depol_recvar2nc3(diag,dim,fname,alt,nlon,nlat)
     real*8,dimension(nlon,nlat,alt,diagmax-1,depolmax-1)  ::  diag
 
 
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4282,7 +4482,7 @@ subroutine diag_recvar2nc4(diag,dim,fname,alt,nlon,nlat,ndiag)
     integer,dimension(nlon,nlat,alt)  ::  diag
 
 print *, 'monthdiagSR_Occ'// trim(ADJUSTL(ndiag))
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4316,7 +4516,7 @@ subroutine depol_recvar2nc4(diag,dim,fname,alt,nlon,nlat,ndiag)
     real*8,dimension(nlon,nlat,alt,diagmax)  ::  diag
 
 print *, 'monthdepolSR_Occ'// trim(ADJUSTL(ndiag))
-    call check(nf90_open('./'//fname,NF90_WRITE,ncid))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
 
     call check(nf90_redef(ncid))
 
@@ -4343,25 +4543,25 @@ end subroutine depol_recvar2nc4
 subroutine rdnc3(fname,var,alt,nlon,nlat,nvar)
   use netcdf
   implicit none
- character(len=*)  ::  nvar, fname
+character(len=*)  ::  nvar, fname
 integer  ::  ncid,varid
 integer :: nlon , nlat, alt
 integer,dimension(nlon,nlat,alt) :: var
 
 print *, nvar
 
- call check(NF90_OPEN(fname,NF90_NOWRITE,ncid))
- call check(NF90_inq_varid(ncid,nvar,varid))
- call check(NF90_get_var(ncid,varid,var))
- call check(NF90_CLOSE(ncid))
-
+call check(NF90_OPEN(fname,NF90_NOWRITE,ncid))
+call check(NF90_inq_varid(ncid,nvar,varid))
+call check(NF90_get_var(ncid,varid,var))
+call check(NF90_CLOSE(ncid))
+ !  call rdnc3('./out/'//trim(file7)//'.tmp',monthdiagSR1,'monthdiagSR_Occ'//trim(adjustl(idiagc)))
 
 end subroutine rdnc3
 
 subroutine rdnc4(fname,var,alt,nlon,nlat,nvar)
   use netcdf
   implicit none
- character(len=*)  ::  nvar, fname
+character(len=*)  ::  nvar, fname
 integer  ::  ncid,varid
 integer, parameter  :: diagmax = 17
 integer :: nlon , nlat, alt
@@ -4369,14 +4569,10 @@ real*8,dimension(nlon,nlat,alt,diagmax-1) :: var
 
 print *, nvar
 
- call check(NF90_OPEN(fname,NF90_NOWRITE,ncid))
- call check(NF90_inq_varid(ncid,nvar,varid))
- call check(NF90_get_var(ncid,varid,var))
- call check(NF90_CLOSE(ncid))
-
+call check(NF90_OPEN(fname,NF90_NOWRITE,ncid))
+call check(NF90_inq_varid(ncid,nvar,varid))
+call check(NF90_get_var(ncid,varid,var))
+call check(NF90_CLOSE(ncid))
+ !  call rdnc3('./out/'//trim(file7)//'.tmp',monthdiagSR1,'monthdiagSR_Occ'//trim(adjustl(idiagc)))
 
 end subroutine rdnc4
-
-
-
-!****************************************************************************!
