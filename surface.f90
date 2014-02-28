@@ -2,7 +2,6 @@
 
 ! subroutines dealing with surface elevation
 
-
 !----------------------------------------------------------------------------!
 ! *** SE_KM_2_PRES *** This subroutine convert the SE from km to hPa and     !
 !                      allocate -888 to the variable below this threshold    !
@@ -40,7 +39,7 @@ real*4,dimension(alt,nprofs)  ::  var6
 real*4,dimension(altitude)  ::  var3
 ! var1 = SE, var2 = SEp, var3 = altl, var4 = pres2, var5 = prestop, var6 = srmoy
 do ilid=1,altitude
-
+  ! print *, var1(1,i), var3(ilid)
       if( var1(i).eq.var3(ilid) )then
          var2(i)=var4(ilid,i)
       else
@@ -109,7 +108,7 @@ real*4,dimension(alt,nprofs)  ::  var6
 real*4,dimension(altitude)  ::  var3
 ! var1 = SE, var2 = SEp, var3 = altl, var4 = pres2, var5 = prestop, var6 = srmoy
 do ilid=1,altitude
-
+  ! print *, var1(1,i), var3(ilid)
       if( var1(i).eq.var3(ilid) )then
          var2(i)=var4(ilid,i)
       else
