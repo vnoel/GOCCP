@@ -12,7 +12,7 @@
 #PBS -j oe
 #PBS -m e
 #PBS -l "mem=4g"
-#PBS -q "threedays"
+#PBS -q "day"
 
 cd $PBS_O_WORKDIR
 
@@ -31,7 +31,6 @@ cp ../calmdz2.70.e .
 cp ../args.init args
 
 sed -i s/LISTNAME/$liste/g args 
-#sed -i s/PERIOD_ID/$period/g args
 
 mkdir -p out/instant
 
