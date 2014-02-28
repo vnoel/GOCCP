@@ -35,11 +35,11 @@
 subroutine atb_mol_interp(var3,alt,i,nprofs,seuil,SE)
   
   implicit none
-  integer  ::  ilid, l, i, n, k
-
+  integer  ::  ilid, l, i, n
+!  real*4,parameter  ::  SeuilMol1km = 0.00015 , SeuilTemp1km = -6.5
   real*4  :: seuil 
   real*8  ::  a,b
-  integer  ::  nprofs  
+  integer  ::  nprofs, k
   integer,dimension(10)  ::  alt3
   real,dimension(583,nprofs)  ::  var3    
   real,dimension(583) :: alt,SE
@@ -50,6 +50,17 @@ subroutine atb_mol_interp(var3,alt,i,nprofs,seuil,SE)
 alt3(1)=275; alt3(2)=296; alt3(3)=329; alt3(4)=362; alt3(5)=395;  
 alt3(6)=429; alt3(7)=462; alt3(8)=495; alt3(9)=529; alt3(10)=562;
 
+ !362=6 329=7  296=8 275=9 259=10
+
+!do ilid=1:275
+  
+
+!if ( ((var3(150,i).eq.(-9999.)).and.(var3(200,i).eq.(-9999.)).and.       &
+!     (var3(250,i).eq.(-9999.)).and.(var3(329,i).eq.(-9999.)).and.        &
+!     (var3(429,i).eq.(-9999.)).and.(var3(529,i).eq.(-9999.))) .or.       &
+!     ((var3(150,i).eq.(-777.)).and.(var3(200,i).eq.(-777.)).and.         &
+!     (var3(250,i).eq.(-777.)).and.(var3(329,i).eq.(-777.)).and.          &
+!     (var3(429,i).eq.(-777.)).and.(var3(529,i).eq.(-777.))) )then
 
 if( sum(var3(1:275,i)).lt.0. )then
 ! Exclude entiere NaN profile
@@ -83,17 +94,24 @@ do ilid=275,563
 enddo
 
 endif
-end subroutine atb_mol_interp
+ 
+!if((i==49261).and.(seuil==0.00015))then
+!do  ilid=1,583 
+!print *, 'atb_mol_interp',var3(ilid,i)
+!enddo
+!endif
+!print *, var3(495,i), "exit"
+endsubroutine atb_mol_interp
 !----------------------------------------------------------------------------!
 
 subroutine atb_temp_interp(var3,alt,i,nprofs,seuil,SE)
   
   implicit none
-  integer  ::  ilid, l, i, n, k
-
+  integer  ::  ilid, l, i, n
+!  real*4,parameter  ::  SeuilMol1km = 0.00015 , SeuilTemp1km = -6.5
   real*4  :: seuil 
   real*8  ::  a,b
-  integer  ::  nprofs  
+  integer  ::  nprofs, k
   integer,dimension(10)  ::  alt3
   real,dimension(583,nprofs)  ::  var3    
   real,dimension(583) :: alt,SE
@@ -112,7 +130,7 @@ if ( ((var3(150,i).eq.(-9999.)).and.(var3(200,i).eq.(-9999.)).and.       &
      (var3(250,i).eq.(-777.)).and.(var3(329,i).eq.(-777.)).and.          &
      (var3(429,i).eq.(-777.)).and.(var3(529,i).eq.(-777.))) )then
 
-
+!print *, i,var3(250,i),var3(495,i)
 continue
 else
 
@@ -142,7 +160,14 @@ do ilid=275,563
 enddo
 
 endif
-end subroutine atb_temp_interp
+ 
+!if((i==49261).and.(seuil==0.00015))then
+!do  ilid=1,583 
+!print *, 'atb_mol_interp',var3(ilid,i)
+!enddo
+!endif
+!print *, var3(495,i), "exit"
+endsubroutine atb_temp_interp
 !----------------------------------------------------------------------------!
 
 !----------------------------------------------------------------------------!
@@ -179,19 +204,18 @@ end subroutine atb_temp_interp
 subroutine atb_mol(var,var2,var3,i,nprofs,alt1,alt2)
 
   implicit none
-  integer  ::  ilid, i , n ,alt1, alt2, it     
-  real  ::  matb, mmol 
-  integer  ::  nprofs                    
+  integer  ::  ilid, i , n ,alt1, alt2       
+  real  ::  matb, mmol !,rcompt  
+  integer  ::  nprofs, it
   real,dimension(583,nprofs)  ::  var, var2, var3    
   real,dimension(nprofs)  ::  rapport3
   
-  matb=0
-  mmol=0
-  rapport3(i)=0
-
-  ! change vnoel 20140224 - "it" was not defined in the subroutine. But it 
-  ! appears in the example comments above in the place of "nprofs" arguments.
-  it = nprofs
+  	  it = nprofs
+  
+      matb=0
+      mmol=0
+      rapport3(i)=0
+    !  rcompt=0
 
      ! Average for the first profils
      if(i.lt.34)then  !!!!! loop on profil
@@ -267,81 +291,12 @@ do ilid=1,583
     
      var3(ilid,i)=-777.
    endif
-
+!if(i==49261)then
+!print *, 'atb_mol',var3(ilid,i)
+!endif
 enddo
  
 end subroutine atb_mol
-!----------------------------------------------------------------------------!
-
-
-!----------------------------------------------------------------------------!
-! ***** INTERP ***** This routine proceed a linear interpolation of variables!
-!                    entered                                                 !
-!----------------------------------------------------------------------------!
-! i        : loop index on the profil                                        !
-! var      : non interpolated variable dim=33,nprofs                         !
-! fvar     : altitude of meteo lvl in kilometer, = altm                      !
-! fvar2    : altitude of lidar lvl in kilometer = altl                       !
-! nprofs   : number of profil                                                !
-!----------------------------------------------------------------------------!
-! var2     : interpolated variable dim=583,nprofs                            !
-!----------------------------------------------------------------------------!
-! a,b      : coefficient for the interpolation equation                      !
-! imol     : loop index of the meteo altitude (33)                           !
-! ilid     : loop index of the lidar altitude (583)                          !
-! altitude : number of level for the lidar variables                         !
-! altitude2: number of level for the meteo variables                         !
-!----------------------------------------------------------------------------!
-!                                                                            !
-! ex : call interp(pres,pres2,altm,altl,i,it)                                !
-!----------------------------------------------------------------------------!
-subroutine interp(var,var2,fvar,fvar2,i,nprofs)
-  implicit none
-
-!     Indexes & parameters 
-      real  ::  a,b                   
-      integer  ::  i
-      integer  ::  ilid                       
-      integer  ::  imol                      
-      integer(kind=2),parameter :: altitude2 = 33 
-      integer(kind=2),parameter :: altitude = 583  
-      integer  ::nprofs 
-    
-!     META variables
-      real*4,dimension(583)  ::  fvar2  
-      real*4,dimension(33)  ::   fvar 
-      real,dimension(33,nprofs)  ::  var 
-      real,dimension(583,nprofs)  ::  var2
-
-
-    do imol=2,altitude2 
-      ! exclude the nan value
-      if( ( (var(imol,i).lt.1E+16).and.(var(imol,i).gt.1E+13).or.            &
-         (var(imol,i).eq.-9999.) ).or.( (var(imol-1,i).lt.1E+16).and.         &
-         (var(imol-1,i).gt.1E+13).or.(var(imol-1,i).eq.-9999.) ) )then
-
-        do ilid=1,altitude
-        if ((fvar2(ilid).ge.fvar(imol)).and.(fvar2(ilid).lt.fvar(imol-1)))then
-            var2(ilid,i)=-9999.
-        endif
-        enddo
-
-      else
-      ! calculation of coefficient
-         a=(var(imol,i)-var(imol-1,i))/(fvar(imol)-fvar(imol-1))
-         b=var(imol,i)-a*fvar(imol)
-        
-        ! calculation of new interpolated variable
-        do ilid=1,altitude
-        if ((fvar2(ilid).ge.fvar(imol)).and.(fvar2(ilid).lt.fvar(imol-1)))then
-           var2(ilid,i)=a*fvar2(ilid)+b
-        endif
-        enddo
-
-      endif
-    enddo
-
-end subroutine interp
 !----------------------------------------------------------------------------!
 
 
@@ -483,7 +438,11 @@ end subroutine SR_CR_DEPOL_chim
 !                              altmax)                                       !
 !----------------------------------------------------------------------------!
 subroutine SR_CR_DEPOL_mean(var1,var2,var3,ind1,ind2,i,iz,nprofs,alt)
- 
+ !  call SR_CR_DEPOL_mean(parmoy,perpmoy,depolmoy,indicep2,indicep,i,iz,it,   &
+ !                              altmax)
+! call SR_CR_DEPOL_mean(parmoy,perpmoy,depolmoy,indicep2,indicep,i,iz,it,   &
+ !                              altmax)
+
   implicit none
   integer  ::  i,iz,nprofs,alt
   real,dimension(alt,nprofs)  ::  var1,var2,var3
@@ -527,20 +486,19 @@ end subroutine SR_CR_DEPOL_mean
 !            because cloud couldn't appear in this area execpt during the    !
 !            polar winter.                                                   !
 !----------------------------------------------------------------------------!
-! change 20140224 : "gcm" argument was named "grid"
-subroutine filtre_2lvl(var1,var2,var3,ind1,ind2,i,iz,nprofs,alt,gcm)
+subroutine filtre_2lvl(var1,var2,var3,ind1,ind2,i,iz,nprofs,alt,grid)
 
  implicit none
  integer  ::  i,iz,nprofs,alt,lvl
  real*4,dimension(alt,nprofs)  ::  var1,var2,var3
  real*4,dimension(alt,nprofs)  ::  ind1,ind2
- character  ::  gcm*8
+ character  ::  grid*8
 
-if(gcm.eq.'LMDZ')then
+if(grid.eq.'LMDZ')then
    lvl=15   ! level to go past in order to apply the filter = 20.8km
-elseif(gcm.eq.'LMDZ40')then
+elseif(grid.eq.'LMDZ40')then
    lvl=30   !  level to go past in order to apply the filter = 21.1km
-elseif(gcm.eq.'WRF')then
+elseif(grid.eq.'WRF')then
    lvl=46   !  level to go past in order to apply the filter = 21.7km
 endif
 

@@ -102,9 +102,9 @@ fi
 
 fi
 
-echo ${COMPILO} $NAME.tmp.f90 calendar.f90 $F90FLAGS1 -o ${NAME}.e
+echo ${COMPILO} $NAME.tmp.f90 calendar.f90 output.f90 signal.f90 $F90FLAGS1 -o ${NAME}.e
 
-${COMPILO} $NAME.tmp.f90 $home/calendar.f90 $F90FLAGS1 -o ${NAME}.e
+${COMPILO} $NAME.tmp.f90 $home/calendar.f90 output.f90 signal.f90 $F90FLAGS1 -o ${NAME}.e
 
 #ifort $1.tmp.f90 calendar.f90 -I/usr/include/hdf -L/usr/lib64/hdf -lmfhdf -ldf -ljpeg -lz -I/opt/netcdf/ifort/include/ -L/opt/netcdf/ifort/lib -lnetcdf -o $1.e
 
