@@ -334,6 +334,7 @@
 
 program calmdz
 
+  use netcdf
   implicit none
 
 
@@ -380,7 +381,7 @@ program calmdz
       integer,dimension(8)  ::  value
       character  ::  datenc*8, timenc*10, zone*5 
       character  ::  blanks*15,forme*15
-      character(len=15),parameter ::  version="2.70"
+      character(len=15),parameter ::  version="Num_version"
       integer  ::  date, year, month, day, jour          
       integer  ::  date1, date2, resh                  
       integer  ::  interdat, ret1
@@ -444,7 +445,7 @@ program calmdz
       character  ::  model*30, filetmp*1024, filetmp2*1024,instantname*1024
       character  ::  metal*30,metam*30
       character  ::  command*1024, command2*1024, command3*1024,command4*1024
-      character  ::  sauve*30,gcm*8, idiagc*2, idepc*2
+      character  ::  sauve*3,gcm*8, idiagc*2, idepc*2
       character  ::  sds_varname*100
       character  ::  switch*5, alt_pres*8, switch2*6,instant_switch*8
       character  ::  datec*6, numfichc*4, yearc*4
@@ -485,7 +486,7 @@ program calmdz
       integer, parameter  ::  diagmax = 19 , diagmax2 = 11, depolmax = 21
       integer, parameter  ::  daymax = 31, pr2max=301, permax=241, tempmax=39
       integer  ::  toplowl,topmidl,tophighl,toplvlsat1,toplvlsat2
-      integer  ::  altstart,altend,nol = 0
+      integer  ::  altstart,altend,nol
                   
                      
 !----------------------------------------------------------------------------!
@@ -654,7 +655,6 @@ program calmdz
 !                                                                            !
 !----------------------------------------------------------------------------!
 !               daily fraction : dim=(lonmax,latmax,altmax,day)              !
-
 !****************************************************************************!
 !   uncertfractday   : uncertfraction averaged on LMDZ/CFMIP/NASA grid day by!
 !                      day.                                                  !
@@ -693,7 +693,6 @@ program calmdz
 !                                                                            !
 !----------------------------------------------------------------------------!
 !                daily isccp : dim=(lonmax,latmax,daymax)                    !
-
 !****************************************************************************!
 !   isccplowday     : isccplow averaged on LMDZ/CFMIP/NASA grid              !
 !   isccpmidday     : isccpmid averaged on LMDZ/CFMIP/NASA grid              !
@@ -729,18 +728,19 @@ program calmdz
                                            rejfraction,fractot,cloudfraction2
 
       real,dimension(:,:,:,:),allocatable :: cloudfractday, clearfractday, &
-                                          
-                                               uncertfractday, &
-                                               indday
+                                           !    satfractday, sefractday ,     &
+                                               uncertfractday, &! nanfractday,  &
+                                               indday!,inddaytot  
 
       real,dimension(:,:,:),allocatable :: monthcloudfract,monthclearfract,&
-                                             monthuncertfract, &
+                                             monthuncertfract, &!monthnanfract, &
+                                            ! monthsatfract, monthsefract,    &
                                              indpermonth,indphasepermonth
 
       integer,dimension(:,:,:),allocatable  ::  indnan
 
       integer,dimension(:),allocatable :: isccplow, isccpmid, isccphigh,      &
-                                         colcloud
+                                         colcloud!, colclear  
       integer,dimension(:,:),allocatable :: isccpliq, isccpice
       integer,dimension(:,:,:),allocatable :: isccpun
 
@@ -776,10 +776,10 @@ program calmdz
       real,dimension(:,:,:),allocatable :: isccplowday, isccpmidday,       &
                                              isccphighday, isccpindday,      &
                                              isccpinddaylow, isccpinddaymid, &
-                                             colcloudday
+                                             colcloudday!, colclearday
 
 
-
+!      real,dimension(:,:,:,:),allocatable :: isccpindphaseday
 
 
       real*8  ::  colclearres
@@ -803,12 +803,16 @@ program calmdz
                                            isccpdaypermonthmid,              &
                                            monthcolcloud, monthcolclear
 
-      real,dimension(:,:,:,:),allocatable :: diagSR
-      real,dimension(:,:,:,:,:),allocatable :: diagSRpha
+      !real,dimension(:,:,:,:),allocatable :: monthdiagSR!,monthdiagCR
+      !real*8,dimension(:,:,:,:,:),allocatable :: monthdepolSR                         
+      !integer*4,dimension(:,:,:),allocatable  ::  monthdiagSR1!, monthdiagCR1
+      !real*8,dimension(:,:,:,:),allocatable  ::  monthdepolSR1
+      real,dimension(:,:,:,:),allocatable :: diagSR!,diagCR
+      real,dimension(:,:,:,:,:),allocatable :: diagSRpha!,diagCR
 
-      real,dimension(:,:,:,:,:),allocatable :: diagPHA
+      real,dimension(:,:,:,:,:),allocatable :: diagPHA!,diagCR
 
-
+      !integer*4,dimension(:,:,:,:,:),allocatable :: depolSR
       integer*4  ::  sumdiag
 
 
@@ -825,7 +829,7 @@ program calmdz
       integer  ::  nanprof, nansat, nanmid, nanlow
       integer  ::  icewaterres
       real,parameter  ::  alpha=0.0028, beta=0.0458, alpha1=3., beta1=0.0576
-
+!      real,parameter  ::  alpha50=1.2682e+04, beta50=-3.0508e+03, gamma50=242.9602, delta50=-4.9362, epsilon50=0.2043, zeta50=-5.6937e-04
 
       real,parameter  ::  alpha50=9.0322e+03, beta50=-2.1358e+03, gamma50=173.3963, delta50=-3.9514, epsilon50=0.2559, zeta50=-9.4776e-04
 
@@ -858,6 +862,24 @@ real*4,dimension(:,:,:),allocatable  :: tot_ind,cloud_ind,ice_ind,water_ind
 real*4,dimension(:,:,:,:),allocatable  :: un_ind
 
 
+!real,dimension(:,:,:),allocatable  :: indtest
+
+!cftemp
+!cftempliq
+!cftempice
+
+!monthcftemp
+!monthcftempice
+!monthcftempliq
+!monthcftempphase
+!indmonthphasetemp
+!indcftemppermonth
+
+!indcftempphase
+!indcftemp
+!cftempday
+!cftempiceday
+!cftempliqday
 
       metal='Lidar_Data_Altitudes'   ! name of meta var     
       metam='Met_Data_Altitudes' 
@@ -881,11 +903,11 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !                                                                 !
 !   The format you have to enter is :                             !
 !   "Map3D330m_",period,day/night,grid,version                    !
-!   ex : "Map3D330m_200701_night_CFMIP_2.0"                       !
+!   ex : "Map3D330m_200701_night_CFMIP_1.0"                       !
 !                                                                 !
 !-----------------------------------------------------------------!
   do
-     write (*,'(a)',advance='no') 'Period identifier ? '
+   write (*,'(a)',advance='no') 'output Prof file name = '
      read *, file5
      if (err==0) exit 
   enddo
@@ -898,7 +920,7 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !                                                                 !
 !-----------------------------------------------------------------!
   do
-     write (*,'(a)',advance='no') 'input file name ? '
+   write (*,'(a)',advance='no') 'input file name = '
      read *, file3
      open(unit=1,file=file3,iostat=err,status='OLD')
      if (err==0) exit
@@ -912,7 +934,7 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !                                                                 !
 !-----------------------------------------------------------------!
   do
-   write (*,'(a)',advance='no') 'model (lmdz, chim or wrf) ?'
+   write (*,'(a)',advance='no') 'Enter the model : '
      read *, model
      if (err==0) exit 
   enddo
@@ -924,7 +946,7 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !                                                                 !
 !-----------------------------------------------------------------!
   do
-   write (*,'(a)',advance='no') 'night or day ? '
+   write (*,'(a)',advance='no') 'Enter night or day : '
      read *, switch
      if (err==0) exit 
   enddo
@@ -940,7 +962,7 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !                                                                 !
 !-----------------------------------------------------------------!
   do
-   write (*,'(a)',advance='no') 'grid (CFMIP1, CFMIP2, LMDZ, NASA) ? '
+   write (*,'(a)',advance='no') 'Enter the grid : '
      read *, gcm
      if (err==0) exit 
   enddo
@@ -951,7 +973,7 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !                                                                 !
 !-----------------------------------------------------------------!
   do
-   write (*,'(a)',advance='no') 'vertical unit (pressure, altitude) ? '
+   write (*,'(a)',advance='no') 'Enter vertical unit : '
      read *, alt_pres
      if (err==0) exit 
   enddo
@@ -967,7 +989,7 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !                                                                 !
 !-----------------------------------------------------------------!
   do
-   write (*,'(a)',advance='no') 'sat or cloudy ? '
+   write (*,'(a)',advance='no') 'Enter sat or cloudy mode : '
      read *, switch2
      if (err==0) exit 
   enddo
@@ -998,66 +1020,73 @@ print *, 'input parameters entered'
 !****************************************************************************!
 
 ! Read parameter file
-open(5,file='./'//trim(gcm)//'.p')
+open(5,file='./GRIDS/'//trim(gcm)//'.p')
    read(5,*)grid, altmax2, altmax, latmax, lonmax, toplowl, topmidl, tophighl, altfile, latfile, lonfile
- close(5)
+close(5)
 
 print *, 'Grid parameter file read' 
 allocate(heightmod(heightmax))
 allocate(latmod(latmax),lonmod(lonmax),prestop(altmax),altmod(altmax2),srmod(diagmax),pr2mod(pr2max),atbrmod(permax), tempmod(tempmax),              &
-         altmid(altmax),latmid(latmax-1),lonmid(lonmax-1), depolmod(depolmax), srdepmod(pr2max),altmod_bound(altmax,2))
+         altmid(altmax),latmid(latmax-1),lonmid(lonmax-1), depolmod(depolmax), srdepmod(pr2max),altmod_bound(altmax,2))!,crmod(diagmax2))
 allocate(tempmod_bound(tempmax-1,2),tempmid(tempmax-1))
   heightmod(:)=0;
   prestop(:)=0;latmod(:)=0;lonmod(:)=0;
-  altmod(:)=0;srmod(:)=0; depolmod(:)=0; pr2mod(:)=0;atbrmod(:)=0;tempmod(:)=0;
+  altmod(:)=0;srmod(:)=0; depolmod(:)=0; pr2mod(:)=0;atbrmod(:)=0;tempmod(:)=0;! crmod(:)=0;!inddaytot(:,:,:,:)=0;
   altmid(:)=0; latmid(:)=0; lonmid(:)=0;
   srdepmod(:)=0;
 
 altmod_bound(:,:)=0; tempmod_bound(:,:)=0;tempmid(:)=0;
   
 ! loading the grid of the diagSR boxes value
-open(17,file='./grilles_lmdz/srmod10')
+open(17,file='./GRIDS/grilles_lmdz/srmod10')
 !print *, 'open the file'
 
   do idiag=1,diagmax
      read(17,*)srmod(idiag)
   enddo
- close(17)
+close(17)
 
 ! loading the grid of the DepolSR boxes value
-open(6,file='./grilles_lmdz/depolmod')
+open(6,file='./GRIDS/grilles_lmdz/depolmod')
 
   do idep=1,depolmax
      read(6,*)depolmod(idep)
   enddo
- close(6)
+close(6)
 
 ! loading the grid of the pr2 boxes value
-open(18,file='./grilles_lmdz/atbmod301')
+open(18,file='./GRIDS/grilles_lmdz/atbmod301')
   do ipr2=1,pr2max
      read(18,*)pr2mod(ipr2)
   enddo
- close(18)
+close(18)
 
-open(23,file='./grilles_lmdz/atbrmod241')
+open(23,file='./GRIDS/grilles_lmdz/atbrmod241')
   do ipr2=1,permax
      read(23,*)atbrmod(ipr2)
   enddo
- close(23)
+close(23)
 
 ! loading the grid of the DepolSR boxes value
-open(20,file='./grilles_lmdz/tempmod39')
+open(20,file='./GRIDS/grilles_lmdz/tempmod39')
 
   do itemp=1,tempmax
      read(20,*)tempmod(itemp)
    enddo
- close(20)
+close(20)
 
         do itemp=1,tempmax-1
             tempmid(itemp) = (tempmod(itemp)+tempmod(itemp+1))/2
             tempmod_bound(itemp,1)=tempmod(itemp);
             tempmod_bound(itemp,2)=tempmod(itemp+1);
          enddo
+
+!!$! loading the grid of the pr2 boxes value
+!!$open(19,file='./GRIDS/grilles_lmdz/srmod8')
+!!$  do ipr2=1,pr2max
+!!$     read(19,*)srdepmod(ipr2)
+!!$  enddo
+!!$close(19)
 
 ! Computing the Height grid
  do iheight=1,heightmax-1
@@ -1069,7 +1098,7 @@ open(20,file='./grilles_lmdz/tempmod39')
 ! loading the level grid (altitude or pressure)
     if(alt_pres=='altitude')then
 
-open(15,file='./grilles_lmdz/'//altfile)
+open(15,file='./GRIDS/grilles_lmdz/'//altfile)
          do iz=1,altmax2
             read(15,*)altmod(iz)
          enddo
@@ -1095,37 +1124,37 @@ open(15,file='./grilles_lmdz/'//altfile)
 
     elseif(alt_pres=='pressure')then
          if(trim(gcm).eq.'LMDZ')then
-            open(15,file='./grilles_lmdz/pression_lmdz2.txt')
+            open(15,file='./GRIDS/grilles_lmdz/pression_lmdz2.txt')
          else if(trim(gcm).eq.'CFMIP')then
-            open(15,file='./grilles_lmdz/pres_cfmip')
+            open(15,file='./GRIDS/grilles_lmdz/pres_cfmip')
          elseif(trim(gcm).eq.'NASA')then
-            open(15,file='./grilles_lmdz/pres_cfmip')   
-
+            open(15,file='./GRIDS/grilles_lmdz/pres_cfmip')   
+ !           open(15,file='./GRIDS/grilles_lmdz/altitude_lmdz3')
          endif
             do iz=1,altmax
             read(15,*)prestop(iz)           ! lmdz milieu de la couche 
             enddo       
    endif
- close(15)
+close(15)
 
 
-open(10,file='./grilles_lmdz/'//lonfile)
+open(10,file='./GRIDS/grilles_lmdz/'//lonfile)
       do ilon=1,lonmax
          read(10,*)lonmod(ilon)           !lmdz
       enddo
       do ilon=1,lonmax-1
          lonmid(ilon)=(lonmod(ilon)+lonmod(ilon+1))/2
       enddo
- close(10)
+close(10)
 
-open(21,file='./grilles_lmdz/'//latfile)
+open(21,file='./GRIDS/grilles_lmdz/'//latfile)
       do ilat=1,latmax
          read(21,*)latmod(ilat)           ! lmdz
       enddo
       do ilat=1,latmax-1
          latmid(ilat)=(latmod(ilat)+latmod(ilat+1))/2
       enddo
- close(21)
+close(21)
   print *, 'latmod lonmod altmod srmod depolmod pr2mod ok'
 
 !****************************************************************************!
@@ -1155,6 +1184,14 @@ filetmp2=trim(file2)
 
 
 
+
+!!$!print *, 'commande =',trim(command)
+!!$!call system(trim(command))
+!
+!_____________________________________________________________________________
+!
+
+
 !****************************************************************************!
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
 !*                                                                          *!
@@ -1165,10 +1202,26 @@ filetmp2=trim(file2)
 
 print *, 'Read the Calipso file data ...'
 
+!!$if(file2(6:10).eq.'GOCCP')then
+!!$
+!!$filetmp2=trim(file2)
+!!$file2='/bdd/CALIPSO/Lidar_L1/CAL_LID_L1.v2.01/2007/2007_01_01/'//filetmp2(12:)
+!!$
+!!$else
+!!$
+!!$!print *, 'cp the file in /tmp/'
+!!$command='cp '//trim(file2)//' /tmp/'
+!!$!print *, 'commande =',trim(command)
+!!$!call system(trim(command))
+!!$!print *, 'file ok'
+!!$filetmp=file2(56:)
+!!$!filetmp2='/tmp/'//trim(filetmp)
+!!$filetmp2=trim(file2)
+!!$endif
 
 !****************************** READING SDS VAR ****************************!
 
- call nprof(filetmp2,20,it)       ! find the number of profil it
+call nprof(filetmp2,20,it)       ! find the number of profil it
 
 ! empty file checking
 if(it.lt.500)then
@@ -1180,9 +1233,9 @@ endif
 
 ! Allocation of interpolated variables
 allocate(lat(it),lon(it),SE(it),temps(it),temps2(it), &
-          mol2(altitude,it),   & 
-         mol3(altitude, it), temp2(altitude, it), stat = OK_buffer)
-
+          mol2(altitude,it),   & !indretlow(it), indretmid(it), indrethigh(it),indtot(it),indret(it),
+         mol3(altitude, it), temp2(altitude, it), stat = OK_buffer)! ,mol4(altitude, it)
+!,temp2(altitude, it),rapport(it)
 
 if(alt_pres=='pressure')then
    allocate(pres2(altitude, it))
@@ -1193,8 +1246,9 @@ endif
  if (OK_buffer/=0) print *,'--- buffer allocation error '   
 
 ! Initialization of interpolated variables
-   temps2(:)=0; temps(:)=0; mol2(:,:)=0; mol3(:,:)=0; temp2(:,:)=0;
-   lat(:)=0;lon(:)=0;SE(:)=0;
+   temps2(:)=0; temps(:)=0; mol2(:,:)=0; mol3(:,:)=0; temp2(:,:)=0;!mol4(:,:)=0;
+   lat(:)=0;lon(:)=0;SE(:)=0;! indtot(:)=0; indret(:)=0;
+  ! indretlow(:)=0; indretmid(:)=0; indrethigh(:)=0;
 
 
 
@@ -1243,7 +1297,7 @@ if(file2(67:70)/="Laun")then
             day=date-int(date/10000)*10000-month*100       ! day
             jour=day
             print *, 'Processing for the ',day,'/',month,'/',year
-            print *, 'File type = Prov or ValStage'
+            print *, 'File type = Prov'
 
 else 
 
@@ -1307,39 +1361,47 @@ endif
 
 !     Retrieving data for atb variable.
 sds_varname='Total_Attenuated_Backscatter_532'
- call sdsread(atb,filetmp2,sds_varname)
+call sdsread(atb,filetmp2,sds_varname)
 
 !     Retrieving data for atb variable.
 sds_varname='Attenuated_Backscatter_1064'
- call sdsread(atb2,filetmp2,sds_varname)
+call sdsread(atb2,filetmp2,sds_varname)
 
 !     Retrieving data for atb variable.
 sds_varname='Perpendicular_Attenuated_Backscatter_532'
- call sdsread(perp,filetmp2,sds_varname)
+call sdsread(perp,filetmp2,sds_varname)
 
 !     Retrieving data for lat variable.
 sds_varname='Latitude'
- call sdsread(vartmp,filetmp2,sds_varname)
+call sdsread(vartmp,filetmp2,sds_varname)
 lat(:)=vartmp(1,:);
 deallocate(vartmp)
 
 !     Retrieving data for lon variable.
 sds_varname='Longitude'
- call sdsread(vartmp,filetmp2,sds_varname)
+call sdsread(vartmp,filetmp2,sds_varname)
 lon(:)=vartmp(1,:);
 deallocate(vartmp)
 
 !     Retrieving data for mol variable.
 sds_varname='Molecular_Number_Density'
- call sdsread(mol,filetmp2,sds_varname) 
+call sdsread(mol,filetmp2,sds_varname) 
 
 !     Retrieve data for temp variable.
 sds_varname='Temperature'
- call sdsread(temp,filetmp2,sds_varname)
+call sdsread(temp,filetmp2,sds_varname)
+
+
+
+!!$if(alt_pres=='pressure')then
+!!$!     Retrieving data for pres variable.
+!!$sds_varname='Pressure'
+!!$call sdsread(pres,filetmp2,sds_varname)
+!!$endif
 
 !     Retrieving data for surf_elevation !!
 sds_varname='Surface_Elevation'
- call sdsread(vartmp,filetmp2,sds_varname)
+call sdsread(vartmp,filetmp2,sds_varname)
 SE(:)=vartmp(1,:);
 deallocate(vartmp)
 
@@ -1347,9 +1409,9 @@ deallocate(vartmp)
 !***************************** READING META VAR *****************************!
 
 !     Retrieving data for altitude variable.
- call metaread(altl,metal,filetmp2)
+call metaread(altl,metal,filetmp2)
 !     Retrieving data for altitude variable.
- call metaread(altm,metam,filetmp2)
+call metaread(altm,metam,filetmp2)
 
 
 print *, 'HDF Calipso File read'
@@ -1374,6 +1436,12 @@ print *, 'Interpolation of data & molecular calculation start ...'
 
 !************** CONVERTION OF THE UTC FRACTION IN UT HOUR *******************!
 
+!!$! nb of total obs
+!!$do ilid=1,altitude
+!!$   if(atb(ilid,i).ne.-9999)then
+!!$      indtot(i)=indtot(i)+1
+!!$   endif
+!!$enddo
 
 
 !******************************* WRF  MODE *********************************!
@@ -1397,6 +1465,8 @@ do i=1,it          !!!! loop on each profil
    endif
 enddo
 
+!else
+!   deallocate(temps)
 endif
 !_____________________________________________________________________________
 !
@@ -1432,8 +1502,32 @@ enddo        !!!! end of profil loop
 endif
 
 
+!!$do i=1,it   
+!!$!  write(491,'(583(1x,e13.6))')mol2(1:583,i)
+!!$  write(492,'(583(1x,e13.6))')temp2(1:583,i)
+!!$   call atb_mol_interp(temp2,altl,i,it,SeuilTemp1km)         ! molecular extrapolation
+!!$   call SE_alt_mol(SE,altl,temp2,altitude,it,i)! add the SE to mol3
+!!$  write(493,'(583(1x,e13.6))')temp2(1:583,i)
+!!$
+!!$enddo
+!!$
+!!$
+!!$
+!!$stop
+
+
 deallocate(temps)
 
+
+
+!_____________________________________________________________________________
+!
+
+!do i=1,it   
+!  write(491,'(583(1x,e13.6))')mol2(1:583,i)
+!  write(492,'(583(1x,e13.6))')temp2(1:583,i)
+!enddo
+!stop
 
 !************************ CALCULATION OF ATB-MOLECULAR **********************!
  
@@ -1473,7 +1567,7 @@ if(switch.eq.'day')then   !!! DAY mode  !!!
       call atb_mol(atb,mol2,mol3,i,it,62,92) 
    endif
 
-
+!mol4(:,i)=mol3(:,i); ! keep the mol3 before extrapolation in order to count the retrieval
 
       call atb_mol_interp(mol3,altl,i,it,SeuilMol1km,SE)         ! molecular extrapolation
       call SE_alt_mol(SE,altl,mol3,altitude,it,i)! add the SE to mol3
@@ -1495,7 +1589,7 @@ elseif(switch.eq.'night')then  !!! NIGHT mode !!!
      call atb_mol(atb,mol2,mol3,i,it,62,78)  
   endif
 
-
+!mol4(:,i)=mol3(:,i); ! keep the mol3 before extrapolation in order to count the retrieval
       call atb_mol_interp(mol3,altl,i,it,SeuilMol1km,SE)        ! molecular extrapolation
       call SE_alt_mol(SE,altl,mol3,altitude,it,i) ! add the SE to mol3
       call SE_alt_atb(SE,altl,atb,altitude,it,i)  ! add the SE to atb
@@ -1521,34 +1615,16 @@ print *, 'Interpolation of data & molecular calculation done'
 !****************************************************************************!
 
     
-! noms output : base + period + day/night + grille + sat/cloudy + version
-! e.g. 
-! SR_histo330m_201005_night_CFMIP2_sat_2.68.nc
-! base = SR_histo330m_
-! period = 200701 [on va recycler file5 pour ca]
-! day/night  [variable switch]
-! grille = LMDZ, CFMIP1, CFMIP2, NASA [variable gcm]
-! sat/cloudy [variable switch2]
-! version = 2.68 [variable version]:
+ file6='MapLowMidHigh'//trim(file5(17:))//trim(version)    ! Output Map file name
+ file66='MapHigh'//trim(file5(17:))//trim(version)    ! Output Map file name
+file7='SR_histo'//trim(file5(17:)) //trim(version)          ! Output diagSR file name
+ file12='SR_histo_Phase'//trim(file5(17:)) //trim(version)          ! Output diagSR file name
+ file10='3D_CloudFraction_Phase'//trim(file5(17:))//trim(version)    ! Output depolSR file name
+file13='3D_CloudFraction_Temp'//trim(file5(17:))//trim(version)  
+ file11='MapLowMidHigh_Phase'//trim(file5(17:))//trim(version)    ! Output Map file name
+! file12='Phase_histo'//trim(file5(17:))//trim(version)    ! Output Map file name
 
-    
-! Output Map file name
-file6='MapLowMidHigh_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
-! Output Map file name
-file66='MapHigh_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
-! Output diagSR file name
-file7='SR_histo_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
-! Output diagSR file name
-file12='SR_histo_Phase_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
-! Output depolSR file name
-file10='3D_CloudFraction_Phase_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
-file13='3D_CloudFraction_Temp_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
-! Output Map file name
-file11='MapLowMidHigh_Phase_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
-! Output Map file name
-! file12='Phase_histo'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)
 
-print *, file6
 print *, 'altmax=',altmax
 
 
@@ -1562,14 +1638,15 @@ print *, 'Allocation / Initialization of variables...'
 
 if(numfich.eq.1)then ! Allocation of monthly variables
 
-
-   allocate(indday(latmax-1,lonmax-1,altmax,daymax))
-
+!   allocate(indphaseday(latmax-1,lonmax-1,altmax,daymax))
+   allocate(indday(latmax-1,lonmax-1,altmax,daymax))!,                             &
+	 !   inddaytot(latmax-1,lonmax-1,altmax,daymax))
    allocate(cloudfractday(latmax-1,lonmax-1,altmax,daymax),                      &
-            clearfractday(latmax-1,lonmax-1,altmax,daymax))
-
-   allocate(uncertfractday(latmax-1,lonmax-1,altmax,daymax))
-
+            clearfractday(latmax-1,lonmax-1,altmax,daymax))!,                      &
+        !    satfractday(latmax-1,lonmax-1,altmax,daymax))
+   allocate(uncertfractday(latmax-1,lonmax-1,altmax,daymax))!,                     &
+          !  nanfractday(latmax-1,lonmax-1,altmax,daymax),                        &
+           ! sefractday(latmax-1,lonmax-1,altmax,daymax))
    allocate(icecloudfractday(latmax-1,lonmax-1,altmax,daymax),               &
             phasefractday(latmax-1,lonmax-1,altmax,daymax),                      &
             watercloudfractday(latmax-1,lonmax-1,altmax,daymax))
@@ -1587,17 +1664,23 @@ if(numfich.eq.1)then ! Allocation of monthly variables
    allocate(heightday2(latmax-1,lonmax-1,daymax))
 
    allocate(colcloudday(latmax-1,lonmax-1,daymax),                               &
-
+   !         colclearday(latmax-1,lonmax-1,daymax),                               &
             isccpinddaylow(latmax-1,lonmax-1,daymax),                            &
             isccpinddaymid(latmax-1,lonmax-1,daymax),                            &
-            isccpindday(latmax-1,lonmax-1,daymax))
-
+            isccpindday(latmax-1,lonmax-1,daymax))!,                               &
+!            isccpindphaseday(latmax-1,lonmax-1,daymax,3))
 
 allocate(cftempday(latmax-1,lonmax-1,tempmax-1,daymax), &
          cftempiceday(latmax-1,lonmax-1,tempmax-1,daymax), &
          cftempliqday(latmax-1,lonmax-1,tempmax-1,daymax), &
          indcftemp(latmax-1,lonmax-1,tempmax-1,daymax), &
          indcftempphase(latmax-1,lonmax-1,tempmax-1,daymax))
+
+!indcftempphase
+!indcftemp
+!cftempday
+!cftempiceday
+!cftempliqday
 
    allocate(lowtemp(latmax-1,lonmax-1,daymax),                         &
             midtemp(latmax-1,lonmax-1,daymax),                          &
@@ -1617,8 +1700,13 @@ allocate(cftempday(latmax-1,lonmax-1,tempmax-1,daymax), &
 
    allocate(indnan(latmax-1,lonmax-1,altmax))
 
+  !allocate(depolSR(latmax-1,lonmax-1,altmax,diagmax-1,depolmax-1))
+!   allocate(diagCR(latmax-1,lonmax-1,altmax,diagmax2-1,daymax))
 
 allocate(indtotmean(lonmax-1,latmax-1),indtot(lonmax-1,latmax-1))
+!   allocate(indtotmean(lonmax-1,latmax-1),indretmean(lonmax-1,latmax-1))
+!   allocate(indretlowmean(lonmax-1,latmax-1),indretmidmean(lonmax-1,latmax-1))   
+!   allocate(indrethighmean(lonmax-1,latmax-1))
    allocate(isccpliqday(latmax-1,lonmax-1,daymax,4),isccpiceday(latmax-1,lonmax-1,daymax,4))
    allocate(isccpunday(latmax-1,lonmax-1,daymax,4,catmax),                               &
             isccpphaseday(latmax-1,lonmax-1,daymax,4))
@@ -1637,24 +1725,24 @@ endif
   indicep2(:,:)=0; indicep(:,:)=0; indicetemp(:,:)=0;
 
 if(numfich.eq.1)then 
-   indday(:,:,:,:)=0;
-  cloudfractday(:,:,:,:)=0;clearfractday(:,:,:,:)=0;
-  uncertfractday(:,:,:,:)=0;
+   indday(:,:,:,:)=0;!indphaseday(:,:,:,:)=0;
+  cloudfractday(:,:,:,:)=0;clearfractday(:,:,:,:)=0;!satfractday(:,:,:,:)=0;
+  uncertfractday(:,:,:,:)=0;!nanfractday(:,:,:,:)=0;sefractday(:,:,:,:)=0
   icecloudfractday(:,:,:,:)=0; watercloudfractday(:,:,:,:)=0
   uncloudfractday(:,:,:,:,:)=0;
   phasefractday(:,:,:,:)=0; 
 
 indcftempphase(:,:,:,:)=0
 indcftemp(:,:,:,:)=0
- cftempday(:,:,:,:)=0
- cftempiceday(:,:,:,:)=0
- cftempliqday(:,:,:,:)=0
+cftempday(:,:,:,:)=0
+cftempiceday(:,:,:,:)=0
+cftempliqday(:,:,:,:)=0
 
   indphaseday(:,:,:,:)=0; indphaseunday(:,:,:,:,:)=0; 
   heightday(:,:,:)=0; indheight(:,:,:)=0;
   heightday2(:,:,:)=0;
   isccplowday(:,:,:)=0;isccpmidday(:,:,:)=0;isccphighday(:,:,:)=0;
-  colcloudday(:,:,:)=0;isccpindday(:,:,:)=0;
+  colcloudday(:,:,:)=0;isccpindday(:,:,:)=0;!isccpindphaseday(:,:,:,:)=0!colclearday(:,:,:)=0;
   isccpinddaylow(:,:,:)=0;isccpinddaymid(:,:,:)=0;
   diagSR(:,:,:,:)=0;
   diagSRpha(:,:,:,:,:)=0;
@@ -1667,9 +1755,14 @@ indcftemp(:,:,:,:)=0
 lowtemp(:,:,:)=0;midtemp(:,:,:)=0;hightemp(:,:,:)=0;coltemp(:,:,:)=0;
 indlowtemp(:,:,:)=0;indmidtemp(:,:,:)=0;indhightemp(:,:,:)=0;indcoltemp(:,:,:)=0;
 
+ ! depolSR(:,:,:,:,:)=0;
+  
+!  diagCR(:,:,:,:,:)=0;
 
 indtotmean(:,:)=0; indtot(:,:)=0;
 
+!  indtotmean(:,:)=0;indretmean(:,:)=0;
+!  indretlowmean(:,:)=0; indretmidmean(:,:)=0; indrethighmean(:,:)=0;
 endif
 print *, ''
 !_____________________________________________________________________________
@@ -1689,7 +1782,7 @@ print *, 'Begin of vertical average'
 
 !**************** VERTICAL AVERAGE OF OBSERVATIONS DATA *********************!
 
-
+!print *, mol3(:,49261)
 
 if(alt_pres=='altitude')then
 
@@ -1775,7 +1868,7 @@ if(alt_pres=='altitude')then
        elseif(trim(gcm).eq.'NASA')then 
          call SR_CR_DEPOL_mean(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it,   &
                                altmax)
-     
+         !call filtre_2lvl(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it,altmax) 
        endif
      enddo
 
@@ -1807,7 +1900,10 @@ do i=1, it         !!! BEGIN OF IT LOOP
       do iz=altmax,1,-1
          call zero_detect(pr2moy,i,iz,it,altmax)
          call zero_detect(molmoy,i,iz,it,altmax)
-       
+       !  call zero_detect(pr2moy2,i,iz,it,altmax)
+       !  call zero_detect(parmoy,i,iz,it,altmax)
+       !  call zero_detect(perpmoy,i,iz,it,altmax)
+       !
       enddo
 
 
@@ -1819,11 +1915,17 @@ do i=1, it         !!! BEGIN OF IT LOOP
          if((lat(i).le.-60).and.(month.ge.6).and.(month.le.10))then
             call SR_CR_DEPOL_mean(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it, &
                                  altmax)
-      
+      !      call SR_CR_DEPOL_mean(pr2moy2,pr2moy,crmoy,indice2,indice,i,iz,it,   &
+      !                           altmax)
+      !      call SR_CR_DEPOL_mean(parmoy,perpmoy,depolmoy,indicep2,indicep,i,iz,it,   &
+!                                 altmax)
          else
             call filtre_2lvl(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it,      &
                             altmax,gcm)
-      
+      !      call SR_CR_DEPOL_mean(pr2moy2,pr2moy,crmoy,indice2,indice,i,iz,it,   &
+      !                           altmax)
+       !     call SR_CR_DEPOL_mean(perpmoy,parmoy,depolmoy,indicep,indicep2,i,iz,it,   &
+       !                          altmax)
          endif  
        
        elseif(trim(gcm).eq.'LMDZ40')then
@@ -1905,7 +2007,7 @@ do i=1, it         !!! BEGIN OF IT LOOP
        elseif(trim(gcm).eq.'NASA')then 
          call SR_CR_DEPOL_mean(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it,   &
                                altmax)
-        
+         !call filtre_2lvl(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it,altmax) 
        endif
      enddo
 
@@ -1916,7 +2018,7 @@ endif            !!! END OF IT LOOP
 
 
 ! Mode wrf model
-if(model.eq.'wrf')goto 622
+!if(model.eq.'wrf')goto 622
 
 print *, 'deallocate input var'
 
@@ -1952,9 +2054,13 @@ print *, 'allocate flag var'
 ! Allocation / initialization of instantaneous fraction variables
    allocate(cloudfraction(altmax,it),clearfraction(altmax,it),satfraction    &
             (altmax,it), uncertfraction(altmax,it),rejfraction(altmax,it))
-   allocate(nanfraction(altmax,it),sefraction(altmax,it))
-uncertfraction(:,:)=0; nanfraction(:,:)=0;sefraction(:,:)=0;
+   allocate(nanfraction(altmax,it),sefraction(altmax,it))!,fractot(altmax,it))
+
+cloudfraction(:,:)=0; clearfraction(:,:)=0; satfraction(:,:)=0; 
+uncertfraction(:,:)=0; nanfraction(:,:)=0;sefraction(:,:)=0;! fractot(:,:)=0 
 rejfraction(:,:)=0;
+
+
 
 
 
@@ -1975,12 +2081,9 @@ deltatb=0
 !  - on = instant classic file activated
 !  - off = desactivated
 !  - fraction = instant fraction file with GOCCP cloud mask
+!instant_switch='on'
 
-! FIXME : this could be commandline argument
-
-instant_switch='on'
-
-SELECT CASE(instant_switch)
+SELECTCASE("instant_switch")
 
 
 !****************************************************************************!
@@ -1993,24 +2096,23 @@ SELECT CASE(instant_switch)
 ! instant classic file with SR value
 CASE('on')
 
-print *, 'instant_switch = on'
 
 allocate(cloudfraction2(altmax,it))
 cloudfraction2(:,:)=0;
 
-write(numfichc,'(i4)')numfich
-write(datec,'(I6)')date
-write(yearc,'(I4)')year
+  write(numfichc,'(i4)')numfich
+  write(datec,'(I6)')date
+  write(yearc,'(I4)')year
 
-! FIXME : could be better
-! extracts orbit identifier, i.e.
-! translates /bdd/CALIPSO/Lidar_L1/CAL_LID_L1.v3.01/2007/2007_01_01/CAL_LID_L1-ValStage 1-V3-01.2007-01-01T00-22-49ZN.hdf in 2007-01-01T00-22-49ZN
-command4='echo '//trim(file2)//'| cut -d/ -f8 | cut -d. -f2 > ./instant/instantname'//yearc//datec(3:6)//'_'//trim(switch)//'_'//trim(gcm)
+command4='echo '//trim(file2)//'| cut -d/ -f8 | cut -d. -f2 > ./out/instant/instantname'//yearc//datec(3:6)//'_'//trim(switch)//'_'//trim(gcm)
+
 
 CALL SYSTEM(trim(command4))
-open(10,file='./instant/instantname'//yearc//datec(3:6)//'_'//trim(switch)//'_'//trim(gcm))
+open(10,file='./out/instant/instantname'//yearc//datec(3:6)//'_'//trim(switch)//'_'//trim(gcm))
 read(10,*)instantname
- close(10)
+close(10)
+!print *, 'avant routine',srmoy(7,49261)
+!print *, molmoy(7,49261),pr2moy(7,49261)
 
 do i=1,it       !!!!! BEGIN OF IT LOOP 
 ! flag 0/1        
@@ -2024,33 +2126,51 @@ do i=1,it       !!!!! BEGIN OF IT LOOP
                              indice,molmoy,indicem,cloudfraction2,i,altmax,it,  &
                              switch,switch2)  
 
+do iz=1,altmax
+if((cloudfraction2(iz,i).eq.3).and.(cloudfraction(iz,i).eq.0.))then
+print *, i,iz,cloudfraction2(iz,i),cloudfraction(iz,i)
+print *,'Stopping at (cloudfraction2(iz,i).eq.3).and.(cloudfraction(iz,i).eq.0.)'
+stop
+endif
+enddo
+
+!!$!*************** instant SR corrected by delta atb ****************!
+!!$   do iz=altmax,1,-1 
+!!$      deltatb = (pr2moy(iz,i)/indice(iz,i)) - (molmoy(iz,i)/indicem(iz,i))
+!!$      if((srmoy(iz,i).ge.5).and.(deltatb.lt.seuilatb)) srmoy(iz,i)=-777.
+!!$   enddo
+
 enddo      !!! END OF IT LOOP   
+
+!print *, 'apres routine',srmoy(7,49261)
+!print *, molmoy(7,49261),pr2moy(7,49261)
 
 
 where(rejfraction.eq.1)
 srmoy=-777.
- crmoy=-777.
+crmoy=-777.
 depolmoy=-777.
 pr2moy=-777.
 molmoy=-777.
 parmoy=-777.
 perpmoy=-777.
+!tempmoy=-777.
 endwhere
 
 where(nanfraction.eq.1)
 srmoy=-9999.
- crmoy=-9999.
+crmoy=-9999.
 depolmoy=-9999.
 pr2moy=-9999.
 molmoy=-9999.
 parmoy=-9999.
 perpmoy=-9999.
-
+!tempmoy=-9999.
 endwhere
 
 where(sefraction.eq.1)
 srmoy=-888.
- crmoy=-888.
+crmoy=-888.
 depolmoy=-888.
 pr2moy=-888.
 molmoy=-888.
@@ -2070,10 +2190,14 @@ where(tempmoy.ne.-888.)
 tempmoy= tempmoy/indicetemp
 endwhere
 
+print *, 'recording instant SR CR DR file'
+
+
 !!!!! RECORD INSTANT SR FILES WITH ATB ATBper ATBpar ATBmol
-file4='./instant/instant_SR_CR_DR_'//trim(instantname)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(version)//'.nc'
-print *, 'recording instant SR CR DR file : ', file4
- call SR_CR_DR_ATB_nc(file4,altmid,altmod_bound,resd,altmax,switch,gcm,it,lat,lon,SE,temps2,&
+  file4='instant_SR_CR_DR_'//trim(instantname)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(version)//'.nc'
+
+print *, file4
+  call SR_CR_DR_ATB_nc(file4,altmid,altmod_bound,resd,altmax,switch,gcm,it,lat,lon,SE,temps2,&
                   srmoy,crmoy,depolmoy,pr2moy,molmoy,perpmoy,parmoy,tempmoy,cloudfraction2)
 
 
@@ -2087,13 +2211,10 @@ deallocate(cloudfraction2)
 !****************************************************************************!
 !****************************************************************************!
 !****************************************************************************!
-
 ! Do not record any instant file
 CASE('off')
- 
-print *, 'instant_switch = off'
- 
 do i=1,it       !!!!! BEGIN OF IT LOOP 
+! flag 0/1        
 
   call fraction_subgrid2_8km(seuilsnrlow,seuilsnrhigh,srmoy,pr2moy,indice,   &
                              molmoy,indicem,satfraction, &
@@ -2103,7 +2224,10 @@ do i=1,it       !!!!! BEGIN OF IT LOOP
 
 
 !*************** instant SR corrected by delta atb ****************!
-
+!!$   do iz=altmax,1,-1 
+!!$      deltatb = (pr2moy(iz,i)/indice(iz,i)) - (molmoy(iz,i)/indicem(iz,i))
+!!$      if((srmoy(iz,i).ge.5).and.(deltatb.lt.seuilatb)) srmoy(iz,i)=-777.
+!!$   enddo
 
 enddo      !!! END OF IT LOOP   
 
@@ -2116,23 +2240,23 @@ pr2moy=-777.
 molmoy=-777.
 parmoy=-777.
 perpmoy=-777.
-
+!tempmoy=-777.
 endwhere
 
 where(nanfraction.eq.1)
 srmoy=-9999.
- crmoy=-9999.
+crmoy=-9999.
 depolmoy=-9999.
 pr2moy=-9999.
 molmoy=-9999.
 parmoy=-9999.
 perpmoy=-9999.
-
+!tempmoy=-9999.
 endwhere
 
 where(sefraction.eq.1)
 srmoy=-888.
- crmoy=-888.
+crmoy=-888.
 depolmoy=-888.
 pr2moy=-888.
 molmoy=-888.
@@ -2152,18 +2276,65 @@ where(tempmoy.ne.-888.)
 tempmoy= tempmoy/indicetemp
 endwhere
 
-CASE DEFAULT
-
-print *, 'instant_switch is invalid : ', instant_switch
 
 
-END SELECT
+!!$do i=1,it  
+!!$   do iz=altmax,1,-1 
+!!$
+!!$      if(srmoy(iz,i).eq.-9999.)then
+!!$         depolmoy(iz,i)=-9999.
+!!$         crmoy(iz,i)=-9999. 
+!!$      else if(srmoy(iz,i).eq.-777.)then      
+!!$         depolmoy(iz,i)=-777.
+!!$         crmoy(iz,i)=-777.
+!!$      else if(srmoy(iz,i).eq.-888.)then      
+!!$         depolmoy(iz,i)=-888.
+!!$         crmoy(iz,i)=-888.
+!!$      endif
+!!$ 
+!!$
+!!$if( (srmoy(iz,i).ne.-9999.) .and. (srmoy(iz,i).ne.-888.) .and. (srmoy(iz,i).ne.-777.) )then
+!!$     pr2moy(iz,i) = pr2moy(iz,i)/indice(iz,i)
+!!$else
+!!$   pr2moy(iz,i) = -9999.
+!!$endif
+!!$
+!!$if( (srmoy(iz,i).ne.-9999.) .and. (srmoy(iz,i).ne.-888.) .and. (srmoy(iz,i).ne.-777.) )then
+!!$     molmoy(iz,i) = molmoy(iz,i)/indicem(iz,i)
+!!$else
+!!$   molmoy(iz,i) = -9999.
+!!$endif
+!!$
+!!$if( (srmoy(iz,i).ne.-9999.) .and. (srmoy(iz,i).ne.-888.) .and. (srmoy(iz,i).ne.-777.) )then
+!!$     parmoy(iz,i) = parmoy(iz,i)/indicep2(iz,i)
+!!$else
+!!$   parmoy(iz,i) = -9999.
+!!$endif
+!!$
+!!$if( (srmoy(iz,i).ne.-9999.) .and. (srmoy(iz,i).ne.-888.) .and. (srmoy(iz,i).ne.-777.) )then
+!!$     perpmoy(iz,i) = perpmoy(iz,i)/indicep(iz,i)
+!!$else
+!!$   perpmoy(iz,i) = -9999.
+!!$endif
+!!$
+!!$if( (srmoy(iz,i).ne.-9999.) .and. (srmoy(iz,i).ne.-888.)  )then
+!!$    if((tempmoy(iz,i).ne.-777.).and.(tempmoy(iz,i).ne.-9999.).and.(tempmoy(iz,i).ne.-888.) )then
+!!$     tempmoy(iz,i) = tempmoy(iz,i)/indicetemp(iz,i)
+!!$    else
+!!$     tempmoy(iz,i) = -9999.
+!!$    endif
+!!$else
+!!$   tempmoy(iz,i) = -9999.
+!!$endif
+!!$
+!!$   enddo
+!!$enddo
 
-! End of instant_switch select case
 
+ENDSELECT
 
-if(allocated(temps2)) deallocate(temps2,stat = OK_buffer)
-deallocate(SE,stat = OK_buffer)
+!if(allocated(temps2)) deallocate(temps2,stat = OK_buffer)
+!deallocate(SE,stat = OK_buffer)
 
 
 
@@ -2180,6 +2351,20 @@ deallocate(SE,stat = OK_buffer)
 
 
 
+!!$if(numfich.eq.1)then 
+!!$    open(unit=35,file='/tmp/'//trim(file10)//'_atb.asc', iostat=err)
+!!$    open(unit=36,file='/tmp/'//trim(file10)//'_sr.asc', iostat=err)
+!!$
+!!$endif
+
+!!$    open(unit=80,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_liq.asc', iostat=err)
+!!$    open(unit=81,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_ice.asc', iostat=err)
+!!$    open(unit=63,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_atbperun.asc', iostat=err)
+!!$    open(unit=64,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_atbper.asc', iostat=err)
+!!$    open(unit=65,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_atbperdustonly.asc', iostat=err)
+!!$    open(unit=66,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_ice_temp.asc', iostat=err)
+!!$    open(unit=67,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_liq_temp.asc', iostat=err)
+!!$    open(unit=68,file='/bdd/CFMIP/GOCCP/DEPOL/'//trim(file10)//'_liqdust_temp.asc', iostat=err)
 
 print *, 'diagnostic fraction nuage subgrid'
 
@@ -2188,7 +2373,7 @@ print *, 'diagnostic fraction nuage subgrid'
  allocate(isccplow(it),isccpmid(it),isccphigh(it),colcloud(it))!, colclear(it))
  allocate(watercloud(altmax,it),icecloud(altmax,it),uncloud(altmax,it,catmax),phasecloud(altmax,it))
 allocate(cftemp(tempmax-1,it),cftempliq(tempmax-1,it),cftempice(tempmax-1,it))
-
+!cftempice
 
  allocate(height(it),height2(it),isccpliq(4,it),isccpice(4,it),isccpun(4,it,catmax))
 
@@ -2196,12 +2381,12 @@ allocate(cftemp(tempmax-1,it),cftempliq(tempmax-1,it),cftempice(tempmax-1,it))
    height(:)=0; height2(:)=0;
    icecloud(:,:)=0; watercloud(:,:)=0; uncloud(:,:,:)=0;phasecloud(:,:)=0;
    isccplow(:)=0; isccpmid(:)=0; isccphigh(:)=0;
-   colcloud(:)=0; 
+   colcloud(:)=0; !colclear(:)=0;
    isccpice(:,:)=0; isccpliq(:,:)=0; isccpun(:,:,:)=0;
 
- cftemp(:,:)=0; 
- cftempliq(:,:)=0; 
- cftempice(:,:)=0;
+cftemp(:,:)=0; 
+cftempliq(:,:)=0; 
+cftempice(:,:)=0;
 
 
 !! looking for limit before the 2 different SNR
@@ -2212,9 +2397,9 @@ do  iz=altmax,1,-1
    endif      
 enddo
 
- 
+!print *, "toto1"
 
-
+nol=nol_switch
 
 do i=1,it       !!!!! BEGIN OF IT LOOP 
 
@@ -2259,7 +2444,7 @@ do i=1,it       !!!!! BEGIN OF IT LOOP
                        uncloud(iz,i,2)=uncloud(iz,i,2)+1.    !fakeliq particles  
                        phasecloud(iz,i)=4.                   !fakeliq particles
                     endif
-                 else
+            else
                    uncloud(iz,i,4)=uncloud(iz,i,4)+1. !! horizontally oriented particles
                    phasecloud(iz,i)=6.              !! horizontally oriented particles
             endif
@@ -2337,19 +2522,64 @@ enddo
 endif
 
 
+!!$if(toplvlsat2.ne.0)then
+!!$do iz=toplvlsat2-1,1,-1
+!!$    if(cloudfraction(iz,i).gt.0.)then
+!!$
+!!$      if(cloudfraction(iz+1,i).gt.0.)then
+!!$         if(phasecloud(iz+1,i).eq.1.)then
+!!$                     watercloud(iz,i)=watercloud(iz,i)+1.
+!!$                     phasecloud(iz,i)=1.
+!!$         elseif(phasecloud(iz+1,i).eq.2.)then
+!!$                    icecloud(iz,i)=icecloud(iz,i)+1.
+!!$                    phasecloud(iz,i)=2.
+!!$         else
+!!$           uncloud(iz,i)=uncloud(iz,i)+1.  
+!!$           phasecloud(iz,i)=3.                
+!!$         endif
+!!$      else
+!!$        uncloud(iz,i)=uncloud(iz,i)+1.  
+!!$        phasecloud(iz,i)=3.  
+!!$      endif        
+!!$    endif
+!!$enddo
+!!$       toplvlsat2=0
+!!$endif
+!!$
+!!$
 
-do  iz=1,altmax  
-	if(cloudfraction(iz,i).gt.0.)then
-		icewaterres=watercloud(iz,i)+icecloud(iz,i)+uncloud(iz,i,1)+uncloud(iz,i,4)+uncloud(iz,i,5)
-		if((icewaterres.gt.1.).or.(icewaterres.eq.0.))then 
-			print *, 'error sum phase=',icewaterres
-			print *, watercloud(iz,i),icecloud(iz,i),uncloud(iz,i,:)
-			!fixme
-			stop
-		endif
+
+
+
+
+
+!!$  do  iz=1,altmax  
+!!$    if(cloudfraction(iz,i).gt.0.)then
+!!$       if( (dustcloud(iz,i)+hocloud(iz,i)+uncloud(iz,i)+icecloud(iz,i)+   &
+!!$         watercloud(iz,i)).gt.1  )then
+!!$          print *, 'error phase fraction'
+!!$          stop
+!!$       endif
+!!$    endif
+!!$  enddo
+
+  do  iz=1,altmax  
+     if(cloudfraction(iz,i).gt.0.)then
+icewaterres=watercloud(iz,i)+icecloud(iz,i)+uncloud(iz,i,1)+uncloud(iz,i,4)+uncloud(iz,i,5)
+if(phasecloud(iz,i).eq.0.)then 
+print *, 'error sum phase=',icewaterres,i,iz
+print *, watercloud(iz,i),icecloud(iz,i),uncloud(iz,i,:)
+stop
+endif
+
+if((icewaterres.gt.1.).or.(icewaterres.eq.0.))then 
+print *, 'error sum phase=',icewaterres
+print *, watercloud(iz,i),icecloud(iz,i),uncloud(iz,i,:)
+stop
+endif
      
-	endif
-	enddo
+endif
+  enddo
 
 
 
@@ -2357,7 +2587,7 @@ altend=0
 altstart=0
 
 if(nol.eq.1)then
-
+!print *, "Non Over Lap MODE"
 
 !!! NON OVERLAP MODE
 !!! select only clouds in the highest isccp layer
@@ -2394,7 +2624,7 @@ enddo B34
 
 else
 
-
+!print *, "Over Lap MODE"
 
 altend=1
 altstart=altmax
@@ -2437,7 +2667,13 @@ indbase=0
 ! and ATBr: ATBr = 1.3919 * ATB² + 0.0176 * ATB
 !  
 
-
+!!$   do iheight=1,heightmax-1  !longitude
+!!$      if( (altmod(iz).ge.heightmod(iheight)) .and. &
+!!$        (altmod(iz).lt.heightmod(iheight+1)) )then
+!!$        height(i)=iheight
+!!$      endif
+!!$   enddo
+!!$   
 
 
 ! Search the isscp low cloud fraction
@@ -2571,7 +2807,7 @@ endif
 
 ! First level always equal to 0 because the average is perfomed between the 
 ! level i and i-1.
-
+!print *, "toto3"
 
 
   do ilon=1,lonmax-1  !longitude
@@ -2580,7 +2816,13 @@ endif
     do ilat=1,latmax-1  !latitude
         if ( (lat(i).ge.latmod(ilat)) .and. (lat(i).lt.latmod(ilat+1)) )then
 
-            indtot(ilon,ilat)=indtot(ilon,ilat)+1
+           !  indtotmean(ilon,ilat)=indtotmean(ilon,ilat)+indtot(i)
+           !  indretmean(ilon,ilat)=indretmean(ilon,ilat)+indret(i)
+           !  indretlowmean(ilon,ilat)=indretlowmean(ilon,ilat)+indretlow(i)
+           !  indretmidmean(ilon,ilat)=indretmidmean(ilon,ilat)+indretmid(i)
+          !   indrethighmean(ilon,ilat)=indrethighmean(ilon,ilat)+indrethigh(i)
+
+             indtot(ilon,ilat)=indtot(ilon,ilat)+1
              
              nanprof=0
              do ialt=1,altmax
@@ -2714,6 +2956,11 @@ endif
             uncloudfractday(ilat,ilon,ialt,jour,icat)+uncloud(ialt,i,icat)
             enddo
 
+
+          ! indphaseday(ilat,ilon,ialt,jour)=indphaseday(ilat,ilon,ialt,jour)+1
+          ! endif
+
+           
             if((nanfraction(ialt,i).ne.1).and.(sefraction(ialt,i).ne.1).and.(satfraction(ialt,i).ne.1).and.(rejfraction(ialt,i).ne.1))then
             indday(ilat,ilon,ialt,jour)=indday(ilat,ilon,ialt,jour)+1
 
@@ -2727,10 +2974,25 @@ endif
 
             if(indday(ilat,ilon,ialt,jour).lt.sum(uncloudfractday(ilat,ilon,ialt,jour,:)))then
                print *, 'error indice < un_cloud',i,ialt
-               ! FIXME
                stop
             endif
         
+!!$           if(cloudfraction(iz,i).gt.0.)then
+!!$              if((icecloud(ialt,i).ne.0).or.(watercloud(ialt,i).ne.0))then
+!!$              indphaseday(ilat,ilon,ialt,jour)=indphaseday(ilat,ilon,ialt,jour)+1
+!!$              endif
+!!$              if(uncloud(ialt,i).ne.0)then 
+!!$              indphaseunday(ilat,ilon,ialt,jour)=indphaseunday(ilat,ilon,ialt,jour)+1
+!!$              endif
+!!$              if(hocloud(ialt,i).ne.0)then 
+!!$              indphasehoday(ilat,ilon,ialt,jour)=indphasehoday(ilat,ilon,ialt,jour)+1
+!!$              endif
+!!$
+!!$           else
+!!$              indphaseday(ilat,ilon,ialt,jour)=indphaseday(ilat,ilon,ialt,jour)+1
+!!$           endif
+
+
             endif
 
             if(srmoy(ialt,i).eq.srmod(1))then
@@ -2740,7 +3002,7 @@ endif
                 diagSR(ilon,ilat,ialt,2)=diagSR(ilon,ilat,ialt,2)+1
             endif
 
-
+  !       if( (srmoy(ialt,i).ge.srmod(1)) .and. (srmoy(ialt,i).lt.srmod(diagmax)) )then
                   do idiag=3,diagmax-1
                      if ( (srmoy(ialt,i).ge.srmod(idiag)).and.             &
                         (srmoy(ialt,i).lt.srmod(idiag+1)) )then
@@ -2768,6 +3030,173 @@ endif
                      endif
                   enddo
 
+!!$  do itemp=1,tempmax-1
+!!$    if ( (tempmoy(ialt,i).gt.tempmod(itemp)).and.     &
+!!$       (tempmoy(ialt,i) .le.tempmod(itemp+1)) )then
+!!$       if(icecloud(ialt,i).ne.0)then
+!!$          diagPHA(ilon,ilat,ialt,itemp,2)=            &
+!!$          diagPHA(ilon,ilat,ialt,itemp,2)+1
+!!$       elseif(watercloud(ialt,i).ne.0)then
+!!$          diagPHA(ilon,ilat,ialt,itemp,1)=            &
+!!$          diagPHA(ilon,ilat,ialt,itemp,1)+1
+!!$       elseif(clearfraction(ialt,i).ne.0)then
+!!$          diagPHA(ilon,ilat,ialt,itemp,3)=            &
+!!$          diagPHA(ilon,ilat,ialt,itemp,3)+1         
+!!$       endif
+!!$    endif
+!!$  enddo
+
+!!$if(icecloud(ialt,i).ne.0)then
+!!$  do itemp=1,tempmax-1
+!!$    if ( (tempmoy(ialt,i).gt.tempmod(itemp)).and.     &
+!!$       (tempmoy(ialt,i) .le.tempmod(itemp+1)) )then
+!!$       write(66,*)ilon,ilat,ialt,itemp
+!!$    endif
+!!$  enddo
+!!$endif
+!!$
+!!$if(watercloud(ialt,i).ne.0)then
+!!$  do itemp=1,tempmax-1
+!!$    if ( (tempmoy(ialt,i).gt.tempmod(itemp)).and.     &
+!!$         (tempmoy(ialt,i) .le.tempmod(itemp+1)) )then
+!!$       write(67,*)ilon,ilat,ialt,itemp
+!!$    endif
+!!$  enddo
+!!$endif
+
+!!$if((watercloud(ialt,i).ne.0).and.(dustcloud(ialt,i).ne.0) )then
+!!$  do itemp=1,tempmax-1
+!!$    if ( (tempmoy(ialt,i).gt.tempmod(itemp)).and.     &
+!!$         (tempmoy(ialt,i) .le.tempmod(itemp+1)) )then
+!!$       write(68,*)ilon,ilat,ialt,itemp
+!!$    endif
+!!$  enddo
+!!$endif
+
+!uncloud
+
+!!$if((icecloud(ialt,i).ne.0).or.(watercloud(ialt,i).ne.0).or.(sum(uncloud(ialt,i,2:4)).ne.0))then
+!!$              
+!!$          do ipr2=1,pr2max-1
+!!$            if ( (pr2moy(ialt,i).gt.pr2mod(ipr2)).and.             &
+!!$               ( pr2moy(ialt,i).le.pr2mod(ipr2+1)) )then
+!!$               do iperp=1,permax-1
+!!$                  if ( (perpmoy(ialt,i).gt.atbrmod(iperp)).and.             &
+!!$                  (perpmoy(ialt,i).le.atbrmod(iperp+1)) )then
+!!$                     do itemp=1,tempmax-1
+!!$                        if ( (tempmoy(ialt,i).gt.tempmod(itemp)).and.     &
+!!$                        (tempmoy(ialt,i) .le.tempmod(itemp+1)) )then
+!!$                           write(63,*)ilon,ilat,ialt,ipr2,iperp,itemp
+!!$
+!!$                        endif
+!!$                     enddo
+!!$                  endif
+!!$               enddo
+!!$            endif
+!!$         enddo
+!!$endif
+!!$
+!!$if((icecloud(ialt,i).ne.0).or.(watercloud(ialt,i).ne.0))then
+!!$              
+!!$          do ipr2=1,pr2max-1
+!!$            if ( (pr2moy(ialt,i).gt.pr2mod(ipr2)).and.             &
+!!$               ( pr2moy(ialt,i).le.pr2mod(ipr2+1)) )then
+!!$               do iperp=1,permax-1
+!!$                  if ( (perpmoy(ialt,i).gt.atbrmod(iperp)).and.             &
+!!$                  (perpmoy(ialt,i).le.atbrmod(iperp+1)) )then
+!!$                     do itemp=1,tempmax-1
+!!$                        if ( (tempmoy(ialt,i).gt.tempmod(itemp)).and.     &
+!!$                        (tempmoy(ialt,i) .le.tempmod(itemp+1)) )then
+!!$                           write(64,*)ilon,ilat,ialt,ipr2,iperp,itemp
+!!$
+!!$                        endif
+!!$                     enddo
+!!$                  endif
+!!$               enddo
+!!$            endif
+!!$         enddo
+!!$endif
+!!$
+!!$if(dustcloud(ialt,i).ne.0)then
+!!$              
+!!$          do ipr2=1,pr2max-1
+!!$            if ( (pr2moy(ialt,i).gt.pr2mod(ipr2)).and.             &
+!!$               ( pr2moy(ialt,i).le.pr2mod(ipr2+1)) )then
+!!$               do iperp=1,permax-1
+!!$                  if ( (perpmoy(ialt,i).gt.atbrmod(iperp)).and.             &
+!!$                  (perpmoy(ialt,i).le.atbrmod(iperp+1)) )then
+!!$                     do itemp=1,tempmax-1
+!!$                        if (tempmoy(ialt,i).gt.tempmod(9))then
+!!$                           write(65,*)ilon,ilat,ipr2,iperp
+!!$
+!!$                        endif
+!!$                     enddo
+!!$                  endif
+!!$               enddo
+!!$            endif
+!!$         enddo
+!!$endif
+!!$
+
+
+
+
+
+      !   else
+      !      diagSR(ilon,ilat,ialt,idiag)=
+
+!!$ if ( cloudfraction(ialt,i) .gt. 0 ) then
+!!$                  
+!!$     
+!!$                  do ipr2=1,pr2max-1
+!!$                     if ( ((pr2moy(ialt,i)/indice(ialt,i)).gt.pr2mod(ipr2)).and.             &
+!!$                        ((pr2moy(ialt,i)/indice(ialt,i)).lt.pr2mod(ipr2+1)) )then
+!!$                         do idep=1,depolmax-1
+!!$                           if ( (depolmoy(ialt,i).gt.depolmod(idep)).and.             &
+!!$                                (depolmoy(ialt,i).lt.depolmod(idep+1)) )then
+!!$                           do itemp=1,tempmax-1
+!!$                              if ( ((tempmoy(ialt,i)/indicetemp(ialt,i)) .gt.tempmod(itemp)).and.     &
+!!$                                 ((tempmoy(ialt,i)/indicetemp(ialt,i)) .lt.tempmod(itemp+1)) )then
+!!$                              
+!!$                              write(35,*)ilon,ilat,ialt,ipr2,idep,itemp
+!!$                                 
+!!$                              endif
+!!$                           enddo
+!!$                           endif
+!!$                        enddo
+!!$                     endif
+!!$
+!!$                     if ( (srmoy(ialt,i).gt.srdepmod(ipr2)).and.             &
+!!$                        (srmoy(ialt,i).lt.srdepmod(ipr2+1)) )then
+!!$                         do idep=1,depolmax-1
+!!$                           if ( (depolmoy(ialt,i).gt.depolmod(idep)).and.             &
+!!$                                (depolmoy(ialt,i).lt.depolmod(idep+1)) )then
+!!$
+!!$                           do itemp=1,tempmax-1
+!!$                              if ( ((tempmoy(ialt,i)/indicetemp(ialt,i)) .gt.tempmod(itemp)).and.     &
+!!$                                 ((tempmoy(ialt,i)/indicetemp(ialt,i)) .lt.tempmod(itemp+1)) )then
+!!$                                    
+!!$                              write(36,*)ilon,ilat,ialt,ipr2,idep,itemp
+!!$                                 
+!!$                              endif
+!!$                           enddo
+!!$                           endif
+!!$                        enddo
+!!$                     endif
+!!$                  enddo
+!!$ endif
+       
+
+!!$                  do idiag=1,diagmax2-1
+!!$                     if ( (crmoy(ialt,i).gt.crmod(idiag)).and.             &
+!!$                        (crmoy(ialt,i).lt.crmod(idiag+1)) )then
+!!$                        diagCR(ilat,ilon,ialt,idiag,jour)=                   &
+!!$                        diagCR(ilat,ilon,ialt,idiag,jour)+1
+!!$                     endif
+!!$                  enddo
+
+
+
 
               enddo
             endif
@@ -2775,11 +3204,24 @@ endif
       endif
    enddo
 
-
+!!$   colclearres=colcloudday(ilat,ilon,jour)/isccpindday(ilat,ilon,jour)+      &
+!!$               colclearday(ilat,ilon,jour)/isccpindday(ilat,ilon,jour)
+!!$
+!!$   ! Check colcloud+colclear result (must be equal to 1)
+!!$   do ilat=1,latmax-1
+!!$      do ilon=1,lonmax-1
+!!$       if((colclearres.ne.1).and.(colcloudday(ilat,ilon,jour).ne.0).and.     &
+!!$         (colclearday(ilat,ilon,jour).ne.0))then
+!!$            print *, 'colclear=',colclearday(ilat,ilon,jour)
+!!$            print *, 'colcloud=',colcloudday(ilat,ilon,jour)
+!!$            print *, 'i=',i
+!!$       endif
+!!$      enddo
+!!$   enddo
 
 enddo !!!!!!!!!! END IT LOOP
 
-
+!print *, "toto4"
 
 !****************************************************************************!
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
@@ -2789,13 +3231,13 @@ enddo !!!!!!!!!! END IT LOOP
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
 !****************************************************************************!
 if('instant_switch'.eq.'on')then
- call instant_phase(file4,altmax,it,phasecloud)
+call instant_phase(file4,altmax,it,phasecloud)
 endif
 
 
 do ilon=1,lonmax-1  !latitude
         do ilat=1,latmax-1  !longitude
-  
+   !         print *, indtotmean(ilon,ilat)
           if(indtot(ilon,ilat).gt.0)then
            indtotmean(ilon,ilat)=indtotmean(ilon,ilat)+1
           endif
@@ -2803,6 +3245,11 @@ do ilon=1,lonmax-1  !latitude
 enddo
 
 indtot(:,:)=0;
+
+!CASE DEFAULT
+!print *, "The model you entered doesn't match, try another" 
+!
+!ENDSELECT
 
 
 !****************************************************************************!
@@ -2841,12 +3288,14 @@ SELECT CASE (sauve)
 
 
 !**************************** WRF OUTPUT FORMAT *****************************! 
- CASE ("wrf")
+CASE ("wrf")
+
+print *, 'wrf'
 
 comptpf=0
 do i=1,it
-     if ((lat(i).gt.15.0).and.(lat(i).lt.55.0))then
-           if((lon(i).gt.-18.0).and.(lon(i).lt.36.0))then
+     if ((lat(i).gt.30.0).and.(lat(i).lt.50.0))then
+           if((lon(i).gt.-15.0).and.(lon(i).lt.50.0))then
               comptpf=comptpf+1
            endif
       endif
@@ -2860,8 +3309,8 @@ else
 
 comptpf=0
 do i=1,it
-     if ((lat(i).gt.15.0).and.(lat(i).lt.55.0))then
-           if((lon(i).gt.-18.0).and.(lon(i).lt.36.0))then
+     if ((lat(i).gt.30.0).and.(lat(i).lt.50.0))then
+           if((lon(i).gt.-15.0).and.(lon(i).lt.50.0))then
               comptpf=comptpf+1
               SEwrf(comptpf)=SE(i)
               temps2wrf(comptpf)=temps2(i)
@@ -2876,13 +3325,21 @@ do i=1,it
       endif
 enddo
 
-
   write(numfichc,'(i4)')numfich
-  write(datec,'(I5)')date
+  write(datec,'(I6)')date
+  write(yearc,'(I4)')year
 
-! Name of instantaneous file, one by hdf calipso file  
-  file4='SR_CR_DEPOL_200'//datec//'_'//trim(switch)//'_'//trim(gcm)//'_'//    &
-  trim(ADJUSTL(numfichc))//'.nc'
+command4='echo '//trim(file2)//'| cut -d/ -f8 | cut -d. -f2 > ./out/instant/instantname'//yearc//datec(3:6)//'_'//trim(switch)//'_'//trim(gcm)
+
+
+CALL SYSTEM(trim(command4))
+open(10,file='./out/instant/instantname'//yearc//datec(3:6)//'_'//trim(switch)//'_'//trim(gcm))
+read(10,*)instantname
+close(10)
+!print *, 'avant routine',srmoy(7,49261)
+!print *, molmoy(7,49261),pr2moy(7,49261)
+
+  file4='instant_SR_CR_DR_'//trim(instantname)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(version)//'.nc'
 
   call SR_CR_DR_2nc(file4,altmid,altmod,resd,altmax,switch,gcm,comptpf,latwrf,lonwrf,SEwrf,temps2wrf,&
                   SRwrf,CRwrf,DEPOLwrf)
@@ -2892,30 +3349,9 @@ endif
 624 continue
 
 
+deallocate(lonwrf,latwrf,SRwrf,CRwrf,DEPOLwrf,temps2wrf,SEwrf)
+print *, 'wrf2'
 
-! Deallocate SDS/META variables
-deallocate(atb,stat = OK_buffer)
-deallocate(atb2,stat = OK_buffer)
-deallocate(perp,stat = OK_buffer)
-deallocate(mol,stat = OK_buffer)
-deallocate(pres,stat = OK_buffer) 
-deallocate(SE,SEwrf,stat = OK_buffer)
-deallocate(mol2,stat = OK_buffer)
-deallocate(mol3,stat = OK_buffer)
-deallocate(mol4)
-deallocate(temp,stat = OK_buffer)
-deallocate(temp2,stat = OK_buffer)
-
-if(alt_pres=='pressure')then
-   deallocate(pres2,stat = OK_buffer)
-endif
-deallocate(altl,stat = OK_buffer)
-deallocate(altm,stat = OK_buffer)
-deallocate(temps2,temps2wrf,stat = OK_buffer)
-deallocate(lonwrf,latwrf,SRwrf,CRwrf,DEPOLwrf)
-
-
-! end of select "wrf"
 
 !continue 
 
@@ -2932,13 +3368,14 @@ do k=1,lonmax
       if(mheure(j,k).ne.0)then
       box=box+1
       if(lonmod(k)==12)then
-       
+       !  print *, k
 endif
 
       write(11,'(4(2x,I6),2(2x,F10.2),(2x,E13.6))'),numfich,box,month,day,   &
       lonmod(k),latmod(j),mheure(j,k)/indiceh(j,k)
          do iz=1,altmax
-      
+      !       write(11,103),altmod(iz),srmoy(j,k,iz),crmoy(j,k,iz),depolmoy(j,k,iz),tempmoy(j,k,iz) &
+       !                   /indicet(j,k,iz),molmoy(j,k,iz)/indicem(j,k,iz)
             enddo
       endif
       
@@ -2948,18 +3385,12 @@ enddo
 
 !**************************** LMDZ OUTPUT FORMAT ****************************!
 CASE ("lmdz")
-
-  print *,'model==lmdz, daily files creation skipped.'
-  goto 666
+goto 666
 
 CASE DEFAULT
+print *, "error" 
 
-  ! model is not in [lmdz, chimere, wrf] - should never happen
-
-  print *,'invalid select : model = ', sauve
-  print *,'whatever, chugging along...'
-
-END SELECT
+ENDSELECT
 
 666 continue
 647 continue
@@ -2971,15 +3402,12 @@ deallocate(pr2moy,molmoy, stat = OK_buffer)!
 deallocate(srmoy)
 deallocate(lat,stat = OK_buffer)
 deallocate(lon,stat = OK_buffer)
+!deallocate(indtot,indret)
+!deallocate(indretlow,indretmid,indrethigh)
 deallocate(indice,indicem,indice2)
 deallocate(indicep,indicep2,depolmoy,parmoy,perpmoy,pr2moy2,crmoy)
 deallocate(tempmoy,indicetemp)
 
-if(model=='wrf')then
- deallocate(indice,indicem,indice2)
-deallocate(indicep,indicep2,crmoy,depolmoy,parmoy,perpmoy,pr2moy2)
-
-endif
 
 
 if(model=='chimere')then
@@ -2989,24 +3417,31 @@ if(model=='chimere')then
    deallocate(indice,indicem,indice2,stat = OK_buffer)
 endif
 
-if(model=='lmdz')then
-
+if((model=='lmdz').or.(model=='wrf'))then
+! deallocate(indice,indicem)!,indice2,indicep,indicep2
 if(alt_pres=='pressure')then
  deallocate(SEp, stat = OK_buffer)
 endif
- deallocate(isccplow,isccpmid,isccphigh,colcloud)
+ deallocate(isccplow,isccpmid,isccphigh,colcloud)!,colclear, stat = OK_buffer)
  deallocate(cloudfraction,clearfraction,satfraction,uncertfraction,          &
-            nanfraction,sefraction,rejfraction)
+            nanfraction,sefraction,rejfraction)!,fractot)
  deallocate(icecloud,watercloud,uncloud,phasecloud)
  deallocate(isccpliq,isccpice,isccpun)
  deallocate(cftemp,cftempliq,cftempice)
  deallocate(height,height2)
+deallocate(temps2,stat = OK_buffer)
+deallocate(SE,stat = OK_buffer)
+
+
 endif
 
 print *, 'Deallocate buffers done'
 
 
 887 continue
+!print *, 'rm the file'
+!command2='rm -f /tmp/'//trim(filetmp)
+!call system(command2)
 print *, ''
 
 print *, 'go to the next file'
@@ -3042,6 +3477,21 @@ print *, file2(1:1)
 stop
 endif
 
+!!$command='cp '//trim(file2)//' /tmp/'
+
+
+!!$command='mv -f /tmp/'//trim(file10)//'_atb.asc /bdd/CFMIP_TEMP/DEPOL/'
+!!$print *, 'commande =',trim(command)
+!call system(trim(command))
+!print *, 'file ok'
+!!$call system(trim(command))
+!!$
+!!$command='mv -f /tmp/'//trim(file10)//'_sr.asc /bdd/CFMIP_TEMP/DEPOL/'
+!!$print *, 'commande =',trim(command)
+!call system(trim(command))
+!print *, 'file ok'
+!!$call system(trim(command))
+!!$
 
 !****************************************************************************!
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
@@ -3061,8 +3511,8 @@ endif
 !----------------------------------------------------------------------------!
 
 SELECT CASE (model)
+CASE ("lmdz")
 
- CASE ("lmdz")
 
 !****************************************************************************!
 !*!!!!!!!!!!!!!! PART I : CLOUDY LOW MID HIGH MAP FILES !!!!!!!!!!!!!!!!!!!!*!
@@ -3128,6 +3578,9 @@ enddo
 do ihisttemp=1,histtempmax2
    histtempmod2(ihisttemp)=(histtempmod(ihisttemp)+histtempmod(ihisttemp+1))/2
 enddo
+
+!print *, 'histtempmod',histtempmod
+!print *, 'histtempmod2',histtempmod2
 
 
 do ihist=1,histmax-2
@@ -3404,7 +3857,10 @@ enddo
 
           monthcolcloud(ilon,ilat)=monthcolcloud(ilon,ilat)+                 &
                                    colcloudday(ilat,ilon,jour)
-       
+       !   monthcolclear(ilon,ilat)=monthcolclear(ilon,ilat)+                 &
+       !                            colclearday(ilat,ilon,jour)
+
+!isccpdaypermonth(ilon,ilat)=isccpdaypermonth(ilon,ilat)+isccpindday(ilat,ilon,jour)
           isccpdaypermonth(ilon,ilat)=isccpdaypermonth(ilon,ilat)+1
           endif
 
@@ -3428,7 +3884,7 @@ enddo
 
           monthisccplow(ilon,ilat)=monthisccplow(ilon,ilat)+                 &
                                    isccplowday(ilat,ilon,jour)
-          isccpdaypermonthlow(ilon,ilat)=isccpdaypermonthlow(ilon,ilat)+ 1 
+          isccpdaypermonthlow(ilon,ilat)=isccpdaypermonthlow(ilon,ilat)+ 1 !isccpinddaylow(ilat,ilon,jour)
           endif
 
           if ( isccpinddaymid(ilat,ilon,jour).gt.0 ) then
@@ -3452,7 +3908,7 @@ enddo
    
           monthisccpmid(ilon,ilat)=monthisccpmid(ilon,ilat)+                 &
                                    isccpmidday(ilat,ilon,jour)
-          isccpdaypermonthmid(ilon,ilat)=isccpdaypermonthmid(ilon,ilat)+ 1 
+          isccpdaypermonthmid(ilon,ilat)=isccpdaypermonthmid(ilon,ilat)+ 1 !isccpinddaymid(ilat,ilon,jour)
           endif
 
  
@@ -3480,7 +3936,23 @@ enddo
 
  do ilat=1,latmax-1
     do ilon=1,lonmax-1
-
+!!$        if ( indtotmean(ilon,ilat).eq.0 ) then
+!!$           indtotmean(ilon,ilat)=-9999
+!!$        endif
+!!$        if ( indretmean(ilon,ilat).eq.0 ) then
+!!$           indretmean(ilon,ilat)=-9999
+!!$        endif
+!!$        if ( indretlowmean(ilon,ilat).eq.0 ) then
+!!$           indretlowmean(ilon,ilat)=-9999
+!!$        endif
+!!$         
+!!$        if ( indretmidmean(ilon,ilat).eq.0 ) then
+!!$           indretmidmean(ilon,ilat)=-9999
+!!$        endif
+!!$         if ( indrethighmean(ilon,ilat).eq.0 ) then
+!!$           indrethighmean(ilon,ilat)=-9999
+!!$        endif
+!!$ 
 
         if ( indmonthcoltemp(ilon,ilat).ne.0 ) then
            monthcoltemp(ilon,ilat)=                                        &
@@ -3561,7 +4033,9 @@ enddo
               monthheight2(ilon,ilat)=-9999.          
            endif
         else
-      
+        !   monthisccplow(ilon,ilat)=-9999
+        !   monthisccpmid(ilon,ilat)=-9999
+
            monthisccpliq(ilon,ilat,4)=-9999.
            monthisccpice(ilon,ilat,4)=-9999.
            monthisccpun(ilon,ilat,4,:)=-9999.
@@ -3587,7 +4061,7 @@ enddo
         endif
 
 
-
+!        if ( isccpdaypermonthlow(ilon,ilat).eq.0 ) then
         if ( isccpdaypermonthlow(ilon,ilat).gt.0 ) then
            monthisccplow(ilon,ilat)=                                         &
            monthisccplow(ilon,ilat)/isccpdaypermonthlow(ilon,ilat)
@@ -3613,7 +4087,7 @@ enddo
            enddo
         endif
 
-
+!        if ( isccpdaypermonthmid(ilon,ilat).eq.0 ) then
         if ( isccpdaypermonthmid(ilon,ilat).gt.0 ) then
            monthisccpmid(ilon,ilat)=                                         &
            monthisccpmid(ilon,ilat)/isccpdaypermonthmid(ilon,ilat)
@@ -3653,29 +4127,56 @@ enddo
            endif
         enddo
 
+!!$             if ( monthisccplow(ilon,ilat) .gt. monthcolcloud(ilon,ilat) )then
+!!$                print *, ilon,ilat, 'month'
+!!$                print *, monthisccplow(ilon,ilat),monthcolcloud(ilon,ilat)
+!!$             endif
+!!$              if ( monthisccplow(ilon,ilat) .gt.1.01 )then
+!!$                  print *, ilon,ilat,monthisccplow(ilon,ilat)
+!!$               endif
+!!$               if ( monthcolcloud(ilon,ilat) .gt.1.01 )then
+!!$                  print *, ilon,ilat,monthcolcloud(ilon,ilat)
+!!$               endif
                                     
     enddo
 enddo
 
 
+!!$ do ilat=1,latmax-1
+!!$    do ilon=1,lonmax-1
+!!$if (  monthisccpun(ilon,ilat,2).gt.1)then
+!!$print *, ilon,ilat,isccpdaypermonthmid(ilon,ilat),isccpinddaymid(ilat,ilon,1)
+!!$print *, monthisccpun(ilon,ilat,2),isccpunday(ilat,ilon,jour,2),monthisccpice(ilon,ilat,2),monthisccpmid(ilon,ilat)
+!!$endif
+!!$    enddo
+!!$ enddo
+!!$
+
+! do ilat=1,latmax-1
+ !   do ilon=1,lonmax-1
+!       print *, ilon,ilat,indtotmean(ilon,ilat),indretmean(ilon,ilat)
+!    enddo
+!enddo
+
 
 !***************************** SAVE THE MAP FILES ***************************!
-
-! MapLowMidHigh_
 
 file8=trim(file6)//'.nc'    ! name of output ncdf map file
 file9=trim(file3(25:55))    ! period of map file (description of ncdf file)
 
-call create_mapnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
-call map_recvar2nc2(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
+
+!print *, 'titi'
+ call create_mapnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
+ call map_recvar2nc2(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
                      monthcolclear,dimidsm,file8,lonmax-1,latmax-1)
 
-! MapHigh_
 
 file8=trim(file66)//'.nc'    ! name of output ncdf map file
+file9=trim(file3(25:55))    ! period of map file (description of ncdf file)
 
-call create_maphighnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
-call maphigh(monthisccphigh,monthheight,monthheight2,dimidsm,file8,lonmax-1,latmax-1)
+ call create_maphighnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
+ call maphigh(monthisccphigh,monthheight,monthheight2,dimidsm,file8,lonmax-1,latmax-1)
+!print *, 'titi2'
 
 ! Change NaN value from -9999 to -999 to fit with the GEWEX standard
 forall(ilon=1:lonmax-1, ilat=1:latmax-1, monthisccplow(ilon,ilat)==-9999.)
@@ -3692,31 +4193,87 @@ monthcolcloud(ilon,ilat)=-999
 endforall
 
 
-! MapLowMidHigh_Phase
+
+!!$file8=trim(file6)//'_gewex.nc'    ! name of output ncdf map file
+!!$ call create_mapnc2(file8,file9,lonmid,latmid,resd,dimidsm,dimidhist,dimidhist2,dimidhist3,gcm,lonmax-1,latmax-1)
+!!$call map_recvar2nc3(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
+!!$                    monthcolclear,monthheight,indtotmean,hlow,hmid,hhigh,    &
+!!$                    hcol,hheight,dimidsm,dimidhist,dimidhist2,file8,lonmax-1,latmax-1)
+
+
+!!$file8=trim(file6)//'_gewex.nc'    ! name of output ncdf map file
+!!$
+!!$ call create_mapnc2(file8,file9,lonmid,latmid,resd,dimidsm,dimidhist,dimidhist2,dimidhist3,gcm,lonmax-1,latmax-1)
+
+!!$call map_recvar2nc4(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
+!!$                    monthcolclear,monthheight,indtotmean,hlow,hmid,hhigh,    &
+!!$                    hcol,hheight,monthlowtemp,monthmidtemp,monthhightemp,    &
+!!$                    monthcoltemp,hlowtemp,hmidtemp,hhightemp,hcoltemp,       &
+!!$                    dimidsm,dimidhist,dimidhist2,dimidhist3,file8,lonmax-1,latmax-1)
+ 
+!!$call map_recvar2nc5(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
+!!$                    monthheight,indtotmean,hlow,hmid,hhigh,    &
+!!$                    hcol,hheight,monthlowtemp,monthmidtemp,monthhightemp,    &
+!!$                    monthcoltemp,hlowtemp,hmidtemp,hhightemp,hcoltemp,       &
+!!$                    dimidsm,dimidhist,dimidhist2,dimidhist3,file8,lonmax-1,latmax-1)
+!!$ 
+
+
+!!$call map_recvar2nc7(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud,&
+!!$                    monthheight,indtotmean,hlow,hmid,hhigh,    &
+!!$                    hcol,hheight,dimidsm,dimidhist,dimidhist2,dimidhist3,file8,lonmax-1,latmax-1, &
+!!$ monthlowtemp,monthmidtemp,monthhightemp,monthcoltemp,hlowtemp,hmidtemp,hhightemp,hcoltemp)
+
+!!$file8=trim(file6)//'_phase.nc'    ! name of output ncdf map file
+!!$
+!!$
+!!$ call create_mapnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
+!!$ call map_recvar2nc2phase(monthisccpliq,monthisccpice,dimidsm,     &
+!!$                          file8,lonmax-1,latmax-1)
+
+
+!!$file8=trim(file6)//'_phaseocc.nc'    ! name of output ncdf map file
+!!$
+!!$ call create_mapnc(file8,file9,lonmid,latmid,resd,dimidsm,gcm,lonmax-1,latmax-1)
+!!$ call map_recvar2nc2phaseocc(monthisccpliq,monthisccpice,isccpdaypermonthlow, &
+!!$                             isccpdaypermonthmid,isccpdaypermonth,dimidsm,     &
+!!$                             file8,lonmax-1,latmax-1)
+
 
 file8=trim(file11)//'.nc'    ! name of output ncdf map file
-call create_mapnc_phase(file8,file9,lonmid,latmid,resd,dimidsm,dimidsm2,gcm,lonmax-1,latmax-1)
+
+!print *, 'titi3'
+
+ call create_mapnc_phase(file8,file9,lonmid,latmid,resd,dimidsm,dimidsm2,gcm,lonmax-1,latmax-1)
+! print *, 'titi4'
+
 call map_recvar2nc2phaseocc2(monthisccpliq,monthisccpice,monthisccpun,        &
                               monthisccpphase,dimidsm,dimidsm2,file8,          &
-                              lonmax-1,latmax-1, catmax)
+                              lonmax-1,latmax-1)
+
+!print *, 'titi5'
+
+!subroutine map_recvar2nc2phaseocc2(liq,ice,ho,un,dust,dim,fname,nlon,nlat)
+
+                 !   monthlowtemp,monthmidtemp,monthhightemp,    &
+                 !   monthcoltemp,hlowtemp,hmidtemp,hhightemp,hcoltemp,dimidhist3)
+
 
 
 ! Deallocate daily & monthly map variables
 print *, 'deallocate daily & monthly map variables'
 
-! fixme : here we are in the "case("lmdz")" section of the select(model). 
-! model is always == 'lmdz' (sauf erreur !)
 if(model=='lmdz')then
   deallocate(hlow,hmid,hhigh,hcol,hheight)
   deallocate(monthisccplow,monthisccpmid,monthisccphigh)
-  deallocate(monthcolcloud,isccpdaypermonth)
+  deallocate(monthcolcloud,isccpdaypermonth)!,monthcolclear
   deallocate(monthisccpliq,monthisccpice,monthisccpun)
   deallocate(indmonthphase,monthisccpphase)
   deallocate(indmonthphase2)
   deallocate(inddayphase)
   deallocate(isccplowday,isccpmidday,isccphighday)
   deallocate(isccpliqday,isccpiceday,isccpunday)
-  deallocate(colcloudday,isccpindday)
+  deallocate(colcloudday,isccpindday)!,colclearday
   deallocate(isccpinddaylow,isccpinddaymid)
   deallocate(isccpdaypermonthlow,isccpdaypermonthmid)
   deallocate(indtotmean,indtot)
@@ -3726,13 +4283,15 @@ if(model=='lmdz')then
   deallocate(indlowtemp,indmidtemp,indhightemp,indcoltemp)
   deallocate(hlowtemp,hmidtemp,hhightemp,hcoltemp)
 
+!  deallocate(indtotmean,indretmean)
+!  deallocate(indretlowmean,indretmidmean,indrethighmean)
 endif
 
 print *, 'map file recorded'
 
 
 
-
+!goto 621
 !****************************************************************************!
 !*!!!!!!!!!!!!!!!!!!!!!! PART III : CLOUDY MAP3D FILES !!!!!!!!!!!!!!!!!!!!!*!
 !****************************************************************************!
@@ -3740,16 +4299,16 @@ print *, 'map file recorded'
 
 ! Allocation / initialization of MAP3D monthly variables
 print *, 'allocation / initialization of MAP3D monthly variables'
-   allocate(indphasepermonth(lonmax-1,latmax-1,altmax))
+   allocate(indphasepermonth(lonmax-1,latmax-1,altmax))!,                               &
 
-   allocate(indpermonth(lonmax-1,latmax-1,altmax))
-
+   allocate(indpermonth(lonmax-1,latmax-1,altmax))!,                               &
+         !   indpermonthtot(lonmax-1,latmax-1,altmax))
    allocate(monthcloudfract(lonmax-1,latmax-1,altmax),                           &
             monthclearfract(lonmax-1,latmax-1,altmax)) 
-
-   allocate(monthuncertfract(lonmax-1,latmax-1,altmax))
-
-
+  ! allocate(monthsatfract(lonmax-1,latmax-1,altmax))
+   allocate(monthuncertfract(lonmax-1,latmax-1,altmax))!,                          &
+         !   monthnanfract(lonmax-1,latmax-1,altmax),                             &
+        !    monthsefract(lonmax-1,latmax-1,altmax))
    allocate(monthicecloud(lonmax-1,latmax-1,altmax),                       &
             monthwatercloud(lonmax-1,latmax-1,altmax),                       &
             indphasemonth(lonmax-1,latmax-1,altmax))
@@ -3765,12 +4324,14 @@ print *, 'allocation / initialization of MAP3D monthly variables'
    allocate(indcftemppermonth(lonmax-1,latmax-1,tempmax-1))
 allocate(cftempphaseday(latmax-1,lonmax-1,tempmax-1,daymax))
 
+!allocate(indtest(lonmax-1,latmax-1,tempmax-1))
+!indtest(:,:,:)=0;
 
- cftempphaseday(:,:,:,:)=0;
+cftempphaseday(:,:,:,:)=0;
 indpermonth(:,:,:)=0;indphasepermonth(:,:,:)=0;
 indmonthphase3D(:,:,:)=0; monthphasecloud(:,:,:)=0;
-monthcloudfract(:,:,:)=0;monthclearfract(:,:,:)=0;
-monthuncertfract(:,:,:)=0;
+monthcloudfract(:,:,:)=0;monthclearfract(:,:,:)=0;!monthsatfract(:,:,:)=0;
+monthuncertfract(:,:,:)=0;!monthnanfract(:,:,:)=0;monthsefract(:,:,:)=0;
 indphasemonth(:,:,:)=0;monthicecloud(:,:,:)=0;monthwatercloud(:,:,:)=0;
 monthuncloud(:,:,:,:)=0;
 indphasefractday(:,:,:,:)=0;
@@ -3780,6 +4341,21 @@ monthcftempliq(:,:,:)=0
 monthcftempphase(:,:,:)=0
 indmonthphasetemp(:,:,:)=0
 indcftemppermonth(:,:,:)=0
+
+
+
+!monthcftemp
+!monthcftempice
+!monthcftempliq
+!monthcftempphase
+!indmonthphasetemp
+!indcftemppermonth
+
+!indcftempphase
+!indcftemp
+!cftempday
+!cftempiceday
+!cftempliqday
 
 
 !! OCCURRENCES FILE IN 3D WITH TEMPERATURE
@@ -3823,18 +4399,24 @@ monthcftempliq(:,:,:)=0
 indcftemppermonth(:,:,:)=0
 
 
-!********* CALCULATION OF DAILY DIAGNOSTIC WITH MATCHING INDEXES ************!
+!print *, 'tata1'
 
- cfsumtemp=0.
+!********* CALCULATION OF DAILY DIAGNOSTIC WITH MATCHING INDEXES ************!
+!  do ilat=1,latmax-1
+!!    do ilon=1,lonmax-1
+!       do jour=1,31
+!         do ialt=1,altmax
+
+cfsumtemp=0.
 
   do jour=1,31
     do itemp=1,tempmax-1
        do ilon=1,lonmax-1
          do ilat=1,latmax-1
            if (indcftemp(ilat,ilon,itemp,jour).gt.0) then
+!indtest(ilon,ilat,itemp)=indtest(ilon,ilat,itemp)+indcftemp(ilat,ilon,itemp,jour)
 
-
- cfsumtemp=cftempliqday(ilat,ilon,itemp,jour)+  &
+cfsumtemp=cftempliqday(ilat,ilon,itemp,jour)+  &
           cftempiceday(ilat,ilon,itemp,jour)
 
 if(cfsumtemp.gt.0)then
@@ -3850,12 +4432,12 @@ if(cfsumtemp.gt.0)then
    endif
 endif
 
- cftempday(ilat,ilon,itemp,jour)=   &
- cftempday(ilat,ilon,itemp,jour)/indcftemp(ilat,ilon,itemp,jour)
- cftempliqday(ilat,ilon,itemp,jour)=   &
- cftempliqday(ilat,ilon,itemp,jour)/indcftemp(ilat,ilon,itemp,jour)
- cftempiceday(ilat,ilon,itemp,jour)=   &
- cftempiceday(ilat,ilon,itemp,jour)/indcftemp(ilat,ilon,itemp,jour)
+cftempday(ilat,ilon,itemp,jour)=   &
+cftempday(ilat,ilon,itemp,jour)/indcftemp(ilat,ilon,itemp,jour)
+cftempliqday(ilat,ilon,itemp,jour)=   &
+cftempliqday(ilat,ilon,itemp,jour)/indcftemp(ilat,ilon,itemp,jour)
+cftempiceday(ilat,ilon,itemp,jour)=   &
+cftempiceday(ilat,ilon,itemp,jour)/indcftemp(ilat,ilon,itemp,jour)
 
 if(cftempday(ilat,ilon,itemp,jour).gt.1.)then
 print *, ilat,ilon,itemp,jour
@@ -3927,8 +4509,17 @@ isccptemp=0.
          cloudfractday(ilat,ilon,ialt,jour)/indday(ilat,ilon,ialt,jour)        
          clearfractday(ilat,ilon,ialt,jour) =                                &
          clearfractday(ilat,ilon,ialt,jour)/indday(ilat,ilon,ialt,jour)
+        ! satfractday(ilat,ilon,ialt,jour) =                                  &
+        ! satfractday(ilat,ilon,ialt,jour)/indday(ilat,ilon,ialt,jour)
          uncertfractday(ilat,ilon,ialt,jour) =                               &
          uncertfractday(ilat,ilon,ialt,jour)/indday(ilat,ilon,ialt,jour)
+         !nanfractday(ilat,ilon,ialt,jour) =                                  &
+        ! nanfractday(ilat,ilon,ialt,jour)/inddaytot(ilat,ilon,ialt,jour)
+        ! sefractday(ilat,ilon,ialt,jour) =                                   &
+        ! sefractday(ilat,ilon,ialt,jour)/inddaytot(ilat,ilon,ialt,jour)
+         !  endif
+
+        !   if (indphaseday(ilat,ilon,ialt,jour).gt.0) then
          isccptemp=icecloudfractday(ilat,ilon,ialt,jour)+                     &
                    watercloudfractday(ilat,ilon,ialt,jour)
 if(isccptemp.gt.0)then
@@ -4000,7 +4591,18 @@ endif
     do ialt=1,altmax
       do ilat=1,latmax-1
        do ilon=1,lonmax-1
+!do ialt=1,altmax
+!  do ilat=1,latmax-1
+!    do ilon=1,lonmax-1
+!       do jour=1,31
 
+!!$  if (indphaseday(ilat,ilon,ialt,jour).gt.0) then
+!!$    indphasemonth(ilon,ilat,ialt) = indphasemonth(ilon,ilat,ialt)+1
+!!$    monthicecloud(ilon,ilat,ialt) = monthicecloud(ilon,ilat,ialt) +     &
+!!$                                    icecloudfractday(ilat,ilon,ialt,jour)
+!!$    monthwatercloud(ilon,ilat,ialt) = monthwatercloud(ilon,ilat,ialt) +     &
+!!$                                    watercloudfractday(ilat,ilon,ialt,jour)
+!!$  endif  
 
 
   if (indday(ilat,ilon,ialt,jour).gt.0) then
@@ -4013,7 +4615,8 @@ endif
                                        cloudfractday(ilat,ilon,ialt,jour)
      monthclearfract(ilon,ilat,ialt) = monthclearfract(ilon,ilat,ialt) +     &
                                        clearfractday(ilat,ilon,ialt,jour)
-  
+  !   monthsatfract(ilon,ilat,ialt) = monthsatfract(ilon,ilat,ialt) +         &
+  !                                   satfractday(ilat,ilon,ialt,jour)
      monthuncertfract(ilon,ilat,ialt) = monthuncertfract(ilon,ilat,ialt) +   &
                                         uncertfractday(ilat,ilon,ialt,jour)
 
@@ -4037,13 +4640,38 @@ endif
 
   endif
 
+!!$  if (indphaseday(ilat,ilon,ialt,jour).gt.0) then
 
+!!$    indphasepermonth(ilon,ilat,ialt) = indphasepermonth(ilon,ilat,ialt)+ &
+ !!$                                      indphaseday(ilat,ilon,ialt,jour)
+
+!!$    indphasehopermonth(ilon,ilat,ialt) = indphasehopermonth(ilon,ilat,ialt)+ &
+!!$                                       indphasehoday(ilat,ilon,ialt,jour)
+!!$
+!!$    indphaseunpermonth(ilon,ilat,ialt) = indphaseunpermonth(ilon,ilat,ialt)+ &
+!!$                                       indphaseunday(ilat,ilon,ialt,jour)
+!!$
+!!$    indphasedustpermonth(ilon,ilat,ialt) = indphasedustpermonth(ilon,ilat,ialt)+ &
+!!$                                       indphasedustday(ilat,ilon,ialt,jour)
+
+
+
+!!$  endif
+
+!  if (inddaytot(ilat,ilon,ialt,jour).gt.0) then
+!     indpermonthtot(ilon,ilat,ialt) = indpermonthtot(ilon,ilat,ialt)+1
+!     monthnanfract(ilon,ilat,ialt) = monthnanfract(ilon,ilat,ialt) +         &
+!                                     nanfractday(ilat,ilon,ialt,jour)
+!     monthsefract(ilon,ilat,ialt) = monthsefract(ilon,ilat,ialt) +           &
+!                                    sefractday(ilat,ilon,ialt,jour)
+!  end if
 
        enddo
       enddo
     enddo
   enddo
 
+!print *, 'tata3'
 
     do ialt=1,altmax
       do ilat=1,latmax-1
@@ -4063,12 +4691,12 @@ enddo
 print *, 'deallocate daily MAP3D variables'
 
 if(model=='lmdz')then
- deallocate(indday)
+ deallocate(indday)!,inddaytot)
  deallocate(cloudfractday, clearfractday,uncertfractday)
  deallocate(indphaseday,icecloudfractday,watercloudfractday)
  deallocate(uncloudfractday)
  deallocate(cftempday,cftempliqday,cftempiceday,indcftemp,indcftempphase)
-
+! deallocate(satfractday, nanfractday,sefractday)
 endif
 
 
@@ -4104,6 +4732,17 @@ do ilat=1,latmax-1
 
        do ialt=1,altmax    
 
+   ! do ialt=1,altmax
+   !   do ilat=1,latmax-1
+   !     do ilon=1,lonmax-1
+
+ !       if ( indphasemonth(ilon,ilat,ialt).ne.0 ) then
+ !       monthicecloud(ilon,ilat,ialt)=                                     &
+ !       monthicecloud(ilon,ilat,ialt)/indphasemonth(ilon,ilat,ialt)
+ !       monthwatercloud(ilon,ilat,ialt)=                                     &
+ !       monthwatercloud(ilon,ilat,ialt)/indphasemonth(ilon,ilat,ialt)
+ !       endif
+
 
         if ( indmonthphase3D(ilon,ilat,ialt).gt.0 ) then
         monthphasecloud(ilon,ilat,ialt)=                                    &
@@ -4123,6 +4762,8 @@ do ilat=1,latmax-1
         monthcloudfract(ilon,ilat,ialt)/indpermonth(ilon,ilat,ialt)
         monthclearfract(ilon,ilat,ialt)=                                     &
         monthclearfract(ilon,ilat,ialt)/indpermonth(ilon,ilat,ialt)
+     !   monthsatfract(ilon,ilat,ialt)=                                       &
+     !   monthsatfract(ilon,ilat,ialt)/indpermonth(ilon,ilat,ialt)
         monthuncertfract(ilon,ilat,ialt)=                                    &
         monthuncertfract(ilon,ilat,ialt)/indpermonth(ilon,ilat,ialt)
 
@@ -4138,7 +4779,7 @@ enddo
         else
         monthcloudfract(ilon,ilat,ialt)=-9999.
         monthclearfract(ilon,ilat,ialt)=-9999.
-      
+      !  monthsatfract(ilon,ilat,ialt)=-9999
         monthuncertfract(ilon,ilat,ialt)=-9999.
         monthuncloud(ilon,ilat,ialt,:)=-9999.
         monthwatercloud(ilon,ilat,ialt)=-9999.
@@ -4146,7 +4787,25 @@ enddo
         indphasepermonth(ilon,ilat,ialt)=-9999. 
        endif
 
+!!$        if ( indphasepermonth(ilon,ilat,ialt).ne.0 ) then
+!!$        monthicecloud(ilon,ilat,ialt)=                                     &
+!!$        monthicecloud(ilon,ilat,ialt)/indphasepermonth(ilon,ilat,ialt)
+!!$        monthwatercloud(ilon,ilat,ialt)=                                     &
+!!$        monthwatercloud(ilon,ilat,ialt)/indphasepermonth(ilon,ilat,ialt)
+!!$        else
+!!$        monthicecloud(ilon,ilat,ialt)=-9999
+!!$        monthwatercloud(ilon,ilat,ialt)=-9999
+!!$        endif
 
+    !    if ( indpermonthtot(ilon,ilat,ialt).ne.0 ) then
+    !    monthnanfract(ilon,ilat,ialt)=                                       &
+    !    monthnanfract(ilon,ilat,ialt)/indpermonthtot(ilon,ilat,ialt)
+    !!    monthsefract(ilon,ilat,ialt)=                                        &
+    !    monthsefract(ilon,ilat,ialt)/indpermonthtot(ilon,ilat,ialt)
+    !    else
+    !    monthnanfract(ilon,ilat,ialt)=-9999
+    !    monthsefract(ilon,ilat,ialt)=-9999
+    !    endif
       enddo
     enddo
   enddo
@@ -4157,8 +4816,7 @@ deallocate(phasefractday,indphasefractday)
 
 !**************************** SAVE THE MAP3D FILES **************************!
 
-! name of output netcdf MAP3D file
-file8='Map3D330m_'//trim(file5)//'_'//trim(switch)//'_'//trim(gcm)//'_'//trim(switch2)//'_'//trim(version)//'.nc'
+file8=trim(file5)//trim(version)//'.nc'   ! name of output netcdf MAP3D file
 file9=trim(file3(25:55))   ! period of MAP3D file (description of ncdf file) 
 
 
@@ -4172,12 +4830,16 @@ file9=trim(file3(25:55))   ! period of MAP3D file (description of ncdf file)
 
 print *, 'MAP3D files recorded'
 
-file8=trim(file10)//'.nc'   ! name of output netcdf MAP3D file FIXME
+file8=trim(file10)//'.nc'   ! name of output netcdf MAP3D file
 file9=trim(file3(25:55))   ! period of MAP3D file (description of ncdf file) 
 
  call create_depolnc3d(file8,file9,lonmid,latmid,altmid,altmod_bound,resd,   &
                        dimidsp,dimidsp2,altmax,lonmax-1,latmax-1)
 
+!!$ call depol_recvar2nc(monthicecloud,monthwatercloud, & !indphasemonth, &!,monthsatfract,          &,monthnanfract,monthsefract
+!!$                     dimidsp,    &
+!!$                     file8,altmax,lonmax-1,latmax-1)
+!subroutine depol_recvar2ncocc(ice,water,un,ho,dust,ind,dim,fname,alt,nlon,nlat)!nan,se,sat
 
  call depol_recvar2ncocc(monthicecloud,monthwatercloud,monthuncloud,          &
                          monthphasecloud,indphasepermonth,dimidsp,dimidsp2,   &
@@ -4186,9 +4848,13 @@ file9=trim(file3(25:55))   ! period of MAP3D file (description of ncdf file)
 
 ! check the allocation 
  if (OK_buffer/=0) print *,'--- buffer allocation error '   
-
+!print *, 'tutu'
   deallocate(monthphasecloud,stat = OK_buffer)
 if (OK_buffer/=0) print *,'--- buffer allocation error ' 
+!print *, 'tutu2'
+!  deallocate(indmonthphase3D,stat = OK_buffer)
+!if (OK_buffer/=0) print *,'--- buffer allocation error ' 
+!print *, 'tutu3'
   deallocate(indphasepermonth,stat = OK_buffer)
 if (OK_buffer/=0) print *,'--- buffer allocation error ' 
 
@@ -4219,14 +4885,18 @@ if(model=='lmdz')then
   deallocate(monthcloudfract,monthclearfract,monthuncertfract)
   deallocate(monthicecloud,monthwatercloud,indphasemonth,indpermonth)
   deallocate(monthuncloud)
+!print *, 'titi'
+ ! deallocate(monthsatfract,monthnanfract,monthsefract)
+!print *, 'titi'
+!print *, 'titi'
   deallocate(indcftemppermonth)
 deallocate(indmonthphasetemp)
 deallocate(monthcftempphase)
-
+!print *, 'titi'
   deallocate(monthcftemp)
 deallocate(monthcftempliq)
 deallocate(monthcftempice)
-
+!print *, 'titi'
 endif
 
 
@@ -4242,11 +4912,70 @@ endif
 ! Allocation / initialization of diagSR monthly variables
 print *, 'allocation / initialization of diagSR monthly variables'
 
+
+!!$allocate(monthdiagSR1(lonmax-1,latmax-1,altmax))
+!!$monthdiagSR1(:,:,:)=0;
+!!$
+!!$
+
 file8=trim(file7)//'.nc'   ! name of output netcdf diagSR file
 file9=trim(file3(25:55))   ! period of diagSR file (description of ncdf file)
 
+!!$ call create_diagnc2(trim(file7)//'.tmp',file9,lonmid,latmid,altmid,srmod,resd,dimidsd2, &!dimidsd2,     &
+!!$                    altmax,lonmax-1,latmax-1)
+!!$
+!!$
+!!$
+!!$!************ CALCULATION OF MONTHLY DIAGNOSTIC WITH DAILY VAR **************!
+!!$
+!!$do idiag=1,diagmax-1
+!!$
+!!$monthdiagSR1(:,:,:)=0
+!!$
+!!$! do jour=1,31
+!!$   do ialt=altmax,1,-1
+!!$     do ilat=1,latmax-1
+!!$       do ilon=1,lonmax-1
+!!$
+!!$   monthdiagSR1(ilon,ilat,ialt)=monthdiagSR1(ilon,ilat,ialt)+      &
+!!$                                     diagSR(ilon,ilat,ialt,idiag)
+!!$      
+!!$         if (indnan(ilat,ilon,ialt).eq.0)then
+!!$             monthdiagSR1(ilon,ilat,ialt)=-9999
+!!$         endif  
+!!$   enddo
+!!$
+!!$   
+!!$
+!!$       enddo
+!!$     enddo
+!!$  ! enddo
+!!$
+!!$print *, 'conversion idiag en char'
+!!$write(idiagc,'(i2)')idiag
+!!$print *, 'idiagc :',idiagc
+!!$call diag_recvar2nc4(monthdiagSR1,dimidsd2,trim(file7)//'.tmp',altmax,lonmax-1,latmax-1,idiagc)
+!!$
+!!$enddo
+!!$
+!!$print *, 'deallocate diagSR, monthdiagSR1 tous enregistre'
+!!$deallocate(diagSR)
+!!$deallocate(indnan)
+!!$
+!!$allocate(monthdiagSR(lonmax-1,latmax-1,altmax,diagmax-1))
+!!$monthdiagSR(:,:,:,:)=0;
+
 print *, 'allocation monthdiagSR terminé'
 
+!!$   do ialt=altmax,1,-1
+!!$     do ilat=1,latmax-1
+!!$       do ilon=1,lonmax-1
+!!$          if (indnan(ilat,ilon,ialt).eq.0)then
+!!$             diagSR(ilon,ilat,ialt,1:diagmax-1)=-9999
+!!$          endif
+!!$       enddo
+!!$     enddo
+!!$   enddo
 
 print *, sum(sum(sum(sum(diagSRpha(:,:,:,:,1),4),3),2),1)
 print *, sum(sum(sum(sum(diagSRpha(:,:,:,:,2),4),3),2),1)
@@ -4259,14 +4988,32 @@ forall(ilon=1:lonmax-1, ilat=1:latmax-1,  ialt=1:altmax, indnan(ilat,ilon,ialt) 
 endforall
 
 
+!!$print *, 'lecture des fichier monthdiagSR1'
+!!$do idiag=1,diagmax-1
+!!$   write(idiagc,'(i2)')idiag
+!!$print *, './out/'//file8
+!!$print *, 'monthdiagSR_Occ'//trim(adjustl(idiagc))
+!!$   call rdnc3('./out/'//trim(file7)//'.tmp',monthdiagSR1,altmax,lonmax-1,latmax-1,'cfad_lidarsr532_Occ'//trim(adjustl(idiagc)))
+!!$print *, 'call rdnc3'
+!!$   monthdiagSR(:,:,:,idiag)=monthdiagSR1;
+!!$enddo
+!!$
+!!$
+!!$deallocate(monthdiagSR1)
+!!$
+!!$print *, 'rm the diag file'
+!!$command2='rm -f ./out/'//trim(file7)//'.tmp'
+!!$call system(command2)
+!!$print *, ''
+!!$
 
- call create_diagnc(file8,file9,lonmid,latmid,altmid,altmod_bound,srmod,resd,dimidsd,dimidsdb, &
+ call create_diagnc(file8,file9,lonmid,latmid,altmid,altmod_bound,srmod,resd,dimidsd,dimidsdb, &!dimidsd2,     &
                     altmax,lonmax-1,latmax-1)
 
 print *, 'creation fichier diag final'
 
- call diag_recvar2nc3(diagSR,dimidsd,dimidsdb,file8,altmax,lonmax-1,latmax-1)
-
+call diag_recvar2nc3(diagSR,dimidsd,dimidsdb,file8,altmax,lonmax-1,latmax-1)
+! call diag_recvar2nc(monthdiagSR15,monthdiagSR1,dimidsd,dimidsd2,file8,altmax,lonmax-1,latmax-1)
 
 file8=trim(file12)//'.nc'   ! name of output netcdf diagSR file
 file9=trim(file3(25:55))   ! period of diagSR file (description of ncdf file)
@@ -4275,15 +5022,48 @@ print *, sum(sum(sum(sum(diagSRpha(:,:,:,:,1),4),3),2),1)
 print *, sum(sum(sum(sum(diagSRpha(:,:,:,:,2),4),3),2),1)
 print *, sum(sum(sum(sum(diagSRpha(:,:,:,:,3),4),3),2),1)
 
- call create_diagncpha(file8,file9,lonmid,latmid,altmid,altmod_bound,srmod,resd,dimidsd,dimidsdb, &
+ call create_diagncpha(file8,file9,lonmid,latmid,altmid,altmod_bound,srmod,resd,dimidsd,dimidsdb, &!dimidsd2,     &
                     altmax,lonmax-1,latmax-1)
 
 print *, 'creation fichier diag final'
 
- call diag_recvar2nc3pha(diagSRpha,dimidsd,dimidsdb,file8,altmax,lonmax-1,latmax-1)
+call diag_recvar2nc3pha(diagSRpha,dimidsd,dimidsdb,file8,altmax,lonmax-1,latmax-1)
+! call diag_recvar2nc(monthdiagSR15,monthdiagSR1,dimidsd,dimidsd2,file8,altmax,lonmax-1,latmax-1)
 
 
 
+!!$ do jour=1,31
+!!$   do ialt=altmax,1,-1
+!!$     do ilat=1,latmax-1
+!!$       do ilon=1,lonmax-1
+!!$
+!!$do ilat=1,latmax-1
+!!$   do ilon=1,lonmax-1
+!!$     do ialt=altmax,1,-1   
+!!$         sumdiag=0
+!!$       do idiag=1,diagmax-1
+!!$          if (monthdiagSR(ilon,ilat,ialt,idiag).ne.-9999)then
+!!$             sumdiag=sumdiag+monthdiagSR(ilon,ilat,ialt,idiag)
+!!$          endif
+!!$       enddo
+!!$       do idiag=1,diagmax-1
+!!$          if (monthdiagSR(ilon,ilat,ialt,idiag).ne.-9999)then
+!!$   monthdiagSR(ilon,ilat,ialt,idiag)=monthdiagSR(ilon,ilat,ialt,idiag)/sumdiag
+!!$          endif
+!!$
+!!$       enddo
+!!$     enddo
+!!$   enddo
+!!$enddo
+!!$
+!!$print *, 'test3'
+!!$ call diag_recvar2nc2(monthdiagSR,dimidsd,file8,altmax,lonmax-1,latmax-1)
+!!$print *, 'diag file recorded'
+!!$!*************************** SAVE THE DIAGSR FILES **************************!
+
+
+
+!deallocate(diagCR)
 
 
 
@@ -4295,7 +5075,115 @@ if(model=='lmdz')then
 endif
 ! Deallocate daily & monthly diagSR variables
 print *, 'deallocate daily & monthly diagSR variables'
+!!$
+!!$! Allocation / initialization of diagSR monthly variables
+!!$print *, 'allocation / initialization of diagSR monthly variables'
+!!$
+!!$
+!!$allocate(monthdepolSR1(lonmax-1,latmax-1,altmax,diagmax-1))
+!!$
+!!$
+!!$file8=trim(file10)//'.nc'   ! name of output netcdf diagSR file
+!!$file9=trim(file3(25:55))   ! period of diagSR file (description of ncdf file)
+!!$
+!!$ call create_depolnc2(trim(file10)//'.tmp',file9,lonmid,latmid,altmid,srmod,depolmod,resd,dimidsd3, &!dimidsd2,     &
+!!$                    altmax,lonmax-1,latmax-1)
+!!$
+!!$
+!!$
+!!$!************ CALCULATION OF MONTHLY DIAGNOSTIC WITH DAILY VAR **************!
+!!$
+!!$do idep=1,depolmax-1
+!!$
+!!$monthdepolSR1(:,:,:,:)=0
+!!$
+!!$! do jour=1,31
+!!$  do idiag=1,diagmax-1   
+!!$   do ialt=altmax,1,-1
+!!$     do ilat=1,latmax-1
+!!$       do ilon=1,lonmax-1
+!!$ 
+!!$       
+!!$
+!!$   monthdepolSR1(ilon,ilat,ialt,idiag)=monthdepolSR1(ilon,ilat,ialt,idiag)+      &
+!!$                                     depolSR(ilat,ilon,ialt,idiag,idep)
+!!$         enddo
+!!$
+!!$         if (monthdepolSR1(ilon,ilat,ialt,idiag).eq.0)then
+!!$             monthdepolSR1(ilon,ilat,ialt,idiag)=-9999
+!!$         endif     
+!!$        enddo
+!!$       enddo
+!!$     enddo
+!!$!   enddo
+!!$
+!!$print *, 'conversion idiag en char'
+!!$write(idepc,'(i2)')idep
+!!$print *, 'idepc :',idepc
+!!$call depol_recvar2nc4(monthdepolSR1,dimidsd3,trim(file10)//'.tmp',altmax,lonmax-1,latmax-1,idepc)
+!!$
+!!$enddo
+!!$
+!!$print *, 'deallocate diagSR, monthdiagSR1 tous enregistre'
+!!$deallocate(depolSR)
+!!$
+!!$
+!!$
+!!$allocate(monthdepolSR(lonmax-1,latmax-1,altmax,diagmax-1,depolmax-1))
+!!$monthdepolSR(:,:,:,:,:)=0;
+!!$
+!!$print *, 'allocation monthdiagSR terminé'
+!!$
+!!$
+!!$! write(idiagc,'(i2)')idiag
+!!$
+!!$print *, 'lecture des fichier monthdiagSR1'
+!!$do idep=1,depolmax-1
+!!$   write(idepc,'(i2)')idep
+!!$print *, './out/'//file8
+!!$print *, 'monthdepolSR_Occ'//trim(adjustl(idepc))
+!!$   call rdnc4('./out/'//trim(file10)//'.tmp',monthdepolSR1,altmax,lonmax-1,latmax-1,'cfad_lidardepol532_Occ'//trim(adjustl(idepc)))
+!!$print *, 'call rdnc4'
+!!$   monthdepolSR(:,:,:,:,idep)=monthdepolSR1;
+!!$enddo
+!!$
+!!$
+!!$deallocate(monthdepolSR1)
+!!$
+!!$print *, 'rm the diag file'
+!!$command2='rm -f ./out/'//trim(file10)//'.tmp'
+!!$call system(command2)
+!!$print *, ''
+!!$
+!!$
+!!$print *, 'test'
+!!$ call create_depolnc(file8,file9,lonmid,latmid,altmid,srmod,depolmod,resd,dimidsd4, &!dimidsd2,     &
+!!$                    altmax,lonmax-1,latmax-1)
+!!$
+!!$print *, 'creation fichier diag final'
+!!$
+!!$call depol_recvar2nc3(monthdepolSR,dimidsd4,file8,altmax,lonmax-1,latmax-1)
+!!$
+!!$!*************************** SAVE THE DIAGSR FILES **************************!
+!!$
+!!$
 
+!!$file8=trim(file12)//'.nc'   ! name of output netcdf diagSR file
+!!$file9=trim(file3(25:55))   ! period of diagSR file (description of ncdf file)
+!!$
+!!$forall(ilon=1:lonmax-1, ilat=1:latmax-1,  ialt=1:altmax, indnan(ilat,ilon,ialt) == 0)
+!!$ diagPHA(ilon,ilat,ialt,1:tempmax-1,:)=-9999
+!!$endforall
+!!$deallocate(indnan)
+!!$
+!!$ call create_diagPHAnc(file8,file9,lonmid,latmid,altmid,altmod_bound,tempmod,resd,dimidpha, &!dimidsd2,     &
+!!$                    altmax,lonmax-1,latmax-1)
+!!$
+!!$print *, 'creation fichier diag final'
+!!$
+!!$call diagPHA_recvar2nc3(diagPHA,dimidpha,file8,altmax,lonmax-1,latmax-1)
+!!$
+!!$deallocate(diagPHA)
 
 
 621 continue
@@ -4303,22 +5191,24 @@ print *, 'deallocate daily & monthly diagSR variables'
 
 
 if(model=='lmdz')then
-  deallocate(latmod,lonmod,prestop,altmod,srmod,pr2mod,atbrmod,srdepmod,depolmod,lonmid,latmid,altmid,tempmod,stat = OK_buffer) !crmod
+   deallocate(latmod,lonmod,prestop,altmod,srmod,pr2mod,atbrmod,srdepmod,depolmod,lonmid,latmid,altmid,tempmod,stat = OK_buffer) !crmod
 endif
 
- close(1)
+close(1)
+
 
 CASE ("chimere")
-  continue
+continue
  
 CASE ("wrf")
-  deallocate(latmod,lonmod,prestop,altmod,srmod,lonmid,latmid,altmid,stat = OK_buffer) !crmod
-  close(1)
+   deallocate(latmod,lonmod,prestop,altmod,srmod,lonmid,latmid,altmid,stat = OK_buffer) !crmod
+   close(1)
+ !  close(35)
 
 CASE DEFAULT
-  print *, "error" 
+print *, "error" 
 
-END SELECT
+ENDSELECT
 
  102  format(f10.2,3e13.5)
  103  format((2x,f10.2),5(2x,e13.5))
@@ -4365,8 +5255,7 @@ contains
 !****************************************************************************!
 !****************************************************************************!
 
-! reading routines put the data directly into variables defined in the main program.
-! extracting them into their own file will require a common block (urg)
+
 
 !----------------------------------------------------------------------------!
 ! **** SDSREAD8 ****  This routine allows to read 8-bit SDS-variable on hdf  !
@@ -4470,7 +5359,8 @@ subroutine sdsread(var,filename,varname)
 	character(len=232) :: name, filename
          character       :: varname*100
  
-    
+!	print *,'Reading HDF file...'
+     
 	sd_id = sfstart (filename,	DFACC_READ)
   
 
@@ -4485,14 +5375,14 @@ do i=2,100
 
 enddo
 
-    
+      !  print *, name,'dimensions : ', dim_sizes(1:2)
         npts = dim_sizes(1)
         nprofs = dim_sizes(2)
       allocate(var(npts, nprofs),stat = OK_buffer)
       if (OK_buffer/=0) print *,'--- buffer allocation of ',trim(name),'error' 
         edges = [npts, nprofs]
         ret = sfrdata (sds_id, start, stride, edges, var)
-
+!	print *,'Reading : ', name
 
 	! Do something with the data
       if (ret.eq.-1) then
@@ -4519,10 +5409,10 @@ subroutine metaread(var,varname,filename)
  
 	integer 	:: ret, istat, OK_buffer
 	integer		:: file_id, vdata_ref, vdata_id
-
-  character :: varname*30
+!	integer		:: interlace, vdata_size ,n_rec
+        character       :: varname*30
 	character	:: filename*1024
-
+!	character  	:: fields*550, vdata_name*30
 	
  	real*4,dimension(:),allocatable  ::  var	
   
@@ -4535,7 +5425,7 @@ subroutine metaread(var,varname,filename)
    if (OK_buffer/=0) print *,'--- buffer allocation of ',trim(varname),'error' 
         endif
 
-
+	!print *,'Reading HDF file...'
 
 	file_id = hopen (filename,	DFACC_READ, 0)
  
@@ -4546,13 +5436,13 @@ subroutine metaread(var,varname,filename)
 	vdata_id = vsfatch (file_id, vdata_ref, 'r')
 
 	! reads Varname
-
+	!print *, varname,' exists : ', vsfex (vdata_id, varname)
 	istat = vsfsfld (vdata_id, varname)
 	ret = vsfread (vdata_id, var, 1, FULL_INTERLACE)
 	if (ret.ne.-1) then
            continue
         else
-
+      !     print *, 'ERROR READING METAVAR'
 	end if
  
  	! TRES IMPORTANT : il faut appeler vsfseek entre chaque vsfsfld
@@ -4611,6 +5501,7223 @@ end subroutine nprof
 !----------------------------------------------------------------------------!
 
 
+!----------------------------------------------------------------------------!
+! ***** INTERP ***** This routine proceed a linear interpolation of variables!
+!                    entered                                                 !
+!----------------------------------------------------------------------------!
+! i        : loop index on the profil                                        !
+! var      : non interpolated variable dim=33,nprofs                         !
+! fvar     : altitude of meteo lvl in kilometer, = altm                      !
+! fvar2    : altitude of lidar lvl in kilometer = altl                       !
+! nprofs   : number of profil                                                !
+!----------------------------------------------------------------------------!
+! var2     : interpolated variable dim=583,nprofs                            !
+!----------------------------------------------------------------------------!
+! a,b      : coefficient for the interpolation equation                      !
+! imol     : loop index of the meteo altitude (33)                           !
+! ilid     : loop index of the lidar altitude (583)                          !
+! altitude : number of level for the lidar variables                         !
+! altitude2: number of level for the meteo variables                         !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : call interp(pres,pres2,altm,altl,i,it)                                !
+!----------------------------------------------------------------------------!
+subroutine interp(var,var2,fvar,fvar2,i,nprofs)
+  implicit none
+
+!     Indexes & parameters 
+      real  ::  a,b                   
+      integer  ::  i
+      integer  ::  ilid                       
+      integer  ::  imol                      
+      integer(kind=2),parameter :: altitude2 = 33 
+      integer(kind=2),parameter :: altitude = 583  
+      integer  ::nprofs 
+    
+!     META variables
+      real*4,dimension(583)  ::  fvar2  
+      real*4,dimension(33)  ::   fvar 
+      real,dimension(33,nprofs)  ::  var 
+      real,dimension(583,nprofs)  ::  var2
+
+
+    do imol=2,altitude2 
+      ! exclude the nan value
+      if( ( (var(imol,i).lt.1E+16).and.(var(imol,i).gt.1E+13).or.            &
+         (var(imol,i).eq.-9999.) ).or.( (var(imol-1,i).lt.1E+16).and.         &
+         (var(imol-1,i).gt.1E+13).or.(var(imol-1,i).eq.-9999.) ) )then
+
+        do ilid=1,altitude
+        if ((fvar2(ilid).ge.fvar(imol)).and.(fvar2(ilid).lt.fvar(imol-1)))then
+            var2(ilid,i)=-9999.
+        endif
+        enddo
+
+      else
+      ! calculation of coefficient
+         a=(var(imol,i)-var(imol-1,i))/(fvar(imol)-fvar(imol-1))
+         b=var(imol,i)-a*fvar(imol)
+        
+        ! calculation of new interpolated variable
+        do ilid=1,altitude
+        if ((fvar2(ilid).ge.fvar(imol)).and.(fvar2(ilid).lt.fvar(imol-1)))then
+           var2(ilid,i)=a*fvar2(ilid)+b
+        endif
+        enddo
+
+      endif
+    enddo
+
+end subroutine interp
+!----------------------------------------------------------------------------!
+
+
+
+!----------------------------------------------------------------------------!
+! ***** ATB_MOL_INTERP ***** This subroutine extrapolate the atbmol from the !
+!                            last atbmol known value to the Surface Elevation!
+!                            in the limit of the 5 first kilometers          !
+!----------------------------------------------------------------------------!
+! i        : loop index on the profil                                        !
+! nprofs   : number of profil                                                !
+! alt      : altitude of lidar lvl in kilometer = altl                       ! 
+!----------------------------------------------------------------------------!
+! var3     : molecular interpolated in km-1 sr-1                             !
+!----------------------------------------------------------------------------!
+! l        : loop index on alt3 altitude levels                              !
+! alt3     : selection of value of alt the nearest to 0 1 2 3 4 & 5km        !
+! a,b      : coefficient for the interpolation equation                      !
+! ilid     : loop index of the lidar altitude (583)                          !
+! SeuilMol1km : treshold to add to the molecular to get the value of         !
+!               molecular 1kilometer lower (this treshold is available under !
+!               5km altitude)                                                !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call atb_mol_interp(mol3,altl,i,it)                                  !
+!                                                                            !
+!----------------------------------------------------------------------------!
+!  Purpose : When the molecular value is missing close to the ground (e.g.   !
+!            under 5km), this routine extrapolate this value with the tresh- !
+!            old "SeuilMol1km" applied to the last known value of molecular  !
+!            at 5 4 3 2 or 1 km. Then we have 2 values of molecular distant  !
+!            from 1km. At this moment the routine perform the interpolation  !
+!            between this 2 values at the other altitude. This process       !
+!            don't stop until reaching the surface elevation.                !
+!----------------------------------------------------------------------------!
+subroutine atb_mol_interp(var3,alt,i,nprofs,seuil,SE)
+  
+  implicit none
+  integer  ::  ilid, l, i, n
+!  real*4,parameter  ::  SeuilMol1km = 0.00015 , SeuilTemp1km = -6.5
+  real*4  :: seuil 
+  real*8  ::  a,b
+  integer  ::  nprofs  
+  integer,dimension(10)  ::  alt3
+  real,dimension(583,nprofs)  ::  var3    
+  real,dimension(583) :: alt,SE
+
+
+
+! altitude of 5 level from 0 to 5km each km (made from altl)
+alt3(1)=275; alt3(2)=296; alt3(3)=329; alt3(4)=362; alt3(5)=395;  
+alt3(6)=429; alt3(7)=462; alt3(8)=495; alt3(9)=529; alt3(10)=562;
+
+ !362=6 329=7  296=8 275=9 259=10
+
+!do ilid=1:275
+  
+
+!if ( ((var3(150,i).eq.(-9999.)).and.(var3(200,i).eq.(-9999.)).and.       &
+!     (var3(250,i).eq.(-9999.)).and.(var3(329,i).eq.(-9999.)).and.        &
+!     (var3(429,i).eq.(-9999.)).and.(var3(529,i).eq.(-9999.))) .or.       &
+!     ((var3(150,i).eq.(-777.)).and.(var3(200,i).eq.(-777.)).and.         &
+!     (var3(250,i).eq.(-777.)).and.(var3(329,i).eq.(-777.)).and.          &
+!     (var3(429,i).eq.(-777.)).and.(var3(529,i).eq.(-777.))) )then
+
+if( sum(var3(1:275,i)).lt.0. )then
+! Exclude entiere NaN profile
+var3(:,i)=-777.
+
+else
+
+do ilid=275,563 
+
+   ! Exclude the nan value
+   if( (var3(ilid,i).eq.(-9999.)) .or. (var3(ilid,i).eq.(-777.)))then
+     do l=1,9
+
+      if( (ilid.gt.alt3(l)).and.(ilid.le.alt3(l+1)) ) then
+           ! calculation of extrapolated value 
+           var3(alt3(l+1),i)=var3(alt3(l)-1,i)+seuil
+      ! Calculation of the parameter to interpolate the value between the
+      ! extrapolated value and the last known value        
+      a=(alt(alt3(l+1))-alt(alt3(l)-1))/(var3(alt3(l+1),i)-var3(alt3(l)-1,i))
+      b=alt(alt3(l+1))-a*var3(alt3(l+1),i)
+         
+         ! Calculation of the new interpolated variable  
+         do k=alt3(l),alt3(l+1)
+            var3(k,i)=(alt(k)-b)/a
+         enddo
+      endif
+
+     enddo
+   endif
+
+enddo
+
+endif
+ 
+!if((i==49261).and.(seuil==0.00015))then
+!do  ilid=1,583 
+!print *, 'atb_mol_interp',var3(ilid,i)
+!enddo
+!endif
+!print *, var3(495,i), "exit"
+endsubroutine atb_mol_interp
+!----------------------------------------------------------------------------!
+
+subroutine atb_temp_interp(var3,alt,i,nprofs,seuil,SE)
+  
+  implicit none
+  integer  ::  ilid, l, i, n
+!  real*4,parameter  ::  SeuilMol1km = 0.00015 , SeuilTemp1km = -6.5
+  real*4  :: seuil 
+  real*8  ::  a,b
+  integer  ::  nprofs  
+  integer,dimension(10)  ::  alt3
+  real,dimension(583,nprofs)  ::  var3    
+  real,dimension(583) :: alt,SE
+
+
+
+! altitude of 5 level from 0 to 5km each km (made from altl)
+alt3(1)=275; alt3(2)=296; alt3(3)=329; alt3(4)=362; alt3(5)=395;  
+alt3(6)=429; alt3(7)=462; alt3(8)=495; alt3(9)=529; alt3(10)=562;
+
+
+if ( ((var3(150,i).eq.(-9999.)).and.(var3(200,i).eq.(-9999.)).and.       &
+     (var3(250,i).eq.(-9999.)).and.(var3(329,i).eq.(-9999.)).and.        &
+     (var3(429,i).eq.(-9999.)).and.(var3(529,i).eq.(-9999.))) .or.       &
+     ((var3(150,i).eq.(-777.)).and.(var3(200,i).eq.(-777.)).and.         &
+     (var3(250,i).eq.(-777.)).and.(var3(329,i).eq.(-777.)).and.          &
+     (var3(429,i).eq.(-777.)).and.(var3(529,i).eq.(-777.))) )then
+
+!print *, i,var3(250,i),var3(495,i)
+continue
+else
+
+do ilid=275,563 
+
+   ! Exclude the nan value
+   if( (var3(ilid,i).eq.(-9999.)) .or. (var3(ilid,i).eq.(-777.)))then
+     do l=1,9
+
+      if( (ilid.gt.alt3(l)).and.(ilid.le.alt3(l+1)) ) then
+           ! calculation of extrapolated value 
+           var3(alt3(l+1),i)=var3(alt3(l)-1,i)+seuil
+      ! Calculation of the parameter to interpolate the value between the
+      ! extrapolated value and the last known value        
+      a=(alt(alt3(l+1))-alt(alt3(l)-1))/(var3(alt3(l+1),i)-var3(alt3(l)-1,i))
+      b=alt(alt3(l+1))-a*var3(alt3(l+1),i)
+         
+         ! Calculation of the new interpolated variable  
+         do k=alt3(l),alt3(l+1)
+            var3(k,i)=(alt(k)-b)/a
+         enddo
+      endif
+
+     enddo
+   endif
+
+enddo
+
+endif
+ 
+!if((i==49261).and.(seuil==0.00015))then
+!do  ilid=1,583 
+!print *, 'atb_mol_interp',var3(ilid,i)
+!enddo
+!endif
+!print *, var3(495,i), "exit"
+endsubroutine atb_temp_interp
+!----------------------------------------------------------------------------!
+
+!----------------------------------------------------------------------------!
+! ***** ATB_MOL ***** This routine calculate the atbmol from 33lvl to 583lvl !
+!                     including the calculation of the rapport               !
+!----------------------------------------------------------------------------!
+! alt1     : top calculation altitude level of the normalized ratio          !
+! alt2     : toplow calculation altitude level of the normalized ratio       !
+! nprofs   : number of profil                                                !
+! i        : loop index on the profil                                        !
+! var      : attenuated backscatter (=atb(583,nprof))                        !
+! var2     : molecular from 33lvl to 583lvl in CN (=mol2(583,nprof))         !
+!----------------------------------------------------------------------------!
+! var3     : molecular in km-1 sr-1 from mol2 (=mol3(583,nprof))             !
+!----------------------------------------------------------------------------!
+! n        : loop index of the sliding average                               !
+! ilid     : loop index of the lidar altitude (583)                          !
+! matb     : sum of the atb                                                  !
+! mmol     : sum of the molecular                                            !
+! rapport3 : normalized ratio for each profil dim=(nprof)                    !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call atb_mol(atb,mol2,mol3,i,it,62,92)                               !
+!                                                                            !
+!----------------------------------------------------------------------------!
+!  Purpose : In order to caculate the scattering ratio, we need to estimate  !
+!            the molecular in sr-1 km-1 because :                            ! 
+!            SR = atb(km-1 sr-1) / mol(km-1 sr-1)                            !
+!            and we already know the atb value.                              !
+!            The calculation is a sliding average of 66 profils on 20km      !
+!            (1profil every 330m, 66*330m = 20km). This operation allows to  !
+!            refine the molecular.                                           !
+!----------------------------------------------------------------------------!
+subroutine atb_mol(var,var2,var3,i,nprofs,alt1,alt2)
+
+  implicit none
+  integer  ::  ilid, i , n ,alt1, alt2       
+  real  ::  matb, mmol !,rcompt  
+  integer  ::  nprofs                    
+  real,dimension(583,nprofs)  ::  var, var2, var3    
+  real,dimension(nprofs)  ::  rapport3
+      matb=0
+      mmol=0
+      rapport3(i)=0
+    !  rcompt=0
+
+     ! Average for the first profils
+     if(i.lt.34)then  !!!!! loop on profil
+        matb=0
+        mmol=0 
+
+        do n=0,65
+           ! average between 22-25km or 20-25km
+           do ilid=alt1,alt2   
+               ! exclude the nan values
+               if ((var(ilid,i).ne.(-9999)).and.(var(ilid,i).lt.1).and.      &
+                   (var2(ilid,i).ne.-9999))then
+                matb=matb+var(ilid,1+n)
+                mmol=mmol+var2(ilid,1+n) 
+              ! else
+               ! rcompt=rcompt+1    !! check this process & the value rcompt
+               endif
+            enddo
+         enddo
+         ! calculation of the ratio
+         rapport3(i)=matb/mmol
+
+    ! Average for other profils
+    else 
+       if( (i.gt.32).and.(i.lt.(it-32)) )then
+           matb=0
+           mmol=0 
+
+          do n=0,65
+             ! average between 22-25km or 20-25km
+             do ilid=alt1,alt2  
+                ! exclude the nan values
+                if ((var(ilid,i).ne.(-9999)).and.(var(ilid,i).lt.1).and.     &
+                    (var2(ilid,i).ne.-9999))then
+                   matb=matb+var(ilid,i-32+n)
+                   mmol=mmol+var2(ilid,i-32+n) 
+            !    else
+              !     rcompt=rcompt+1   !! check this process & the value rcompt
+                endif
+             enddo
+          enddo
+          rapport3(i)=matb/mmol
+          
+    ! Average for the last profils      
+          else
+             matb=0
+             mmol=0 
+          
+           do n=0,65
+              ! average between 22-25km or 20-25km
+              do ilid=alt1,alt2 
+                 ! exclude the nan values
+                 if ((var(ilid,i).ne.(-9999)).and.(var(ilid,i).lt.1).and.    &
+                    (var2(ilid,i).ne.-9999))then
+                   matb=matb+var(ilid,it-65+n);
+                   mmol=mmol+var2(ilid,it-65+n) ;
+                 endif
+              enddo
+           enddo
+          rapport3(i)=matb/mmol
+
+       endif
+
+    endif !!!!! END loop on profil
+
+! Calculation of the new molecular in km-1 sr-1   
+do ilid=1,583
+   if((var2(ilid,i).ne.(-9999)).and.(rapport3(i).ge.0.25e-28).and.(rapport3(i).le.0.97e-28))then
+      var3(ilid,i)=rapport3(i)*var2(ilid,i)
+   elseif(var2(ilid,i).eq.(-9999.))then
+      var3(ilid,i)=-9999. ! allocation of nan values 
+   else
+    
+     var3(ilid,i)=-777.
+   endif
+!if(i==49261)then
+!print *, 'atb_mol',var3(ilid,i)
+!endif
+enddo
+ 
+end subroutine atb_mol
+!----------------------------------------------------------------------------!
+
+
+
+!----------------------------------------------------------------------------!
+! **** ZERO_DETECT **** This routine detect the 0 values and substitute them !
+!                        by -777                                            !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! iz     : loop index on the altitude grid                                   !
+! nprofs : number of profil                                                  !
+! alt    : number of the altitude boxes                                      !
+!----------------------------------------------------------------------------!
+! var    : verticaly averaged observed variables                             !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call zero_detect(pr2moy,i,iz,it,altmax)                              !
+!----------------------------------------------------------------------------!
+subroutine zero_detect(var,i,iz,nprofs,alt)
+
+  implicit none
+  integer ::  i,iz,nprofs,alt
+  real*4,dimension(alt,nprofs)  ::  var
+  
+ if(var(iz,i).eq.0)then       ! if no value is detected then allocate -9999
+            var(iz,i)=-9999.
+ endif
+
+end subroutine zero_detect
+!----------------------------------------------------------------------------!
+
+
+
+!----------------------------------------------------------------------------!
+! **** ZERO_DETECT_CHIM **** This routine detect the 0 values and substitute !
+!                              them by -9999                                 !
+!----------------------------------------------------------------------------!
+! j      : loop index on latitude grid                                       !
+! k      : loop index on longitude grid                                      ! 
+! lat    : number of the latitude boxes                                      !
+! lon    : number of the longitude boxes                                     !
+! iz     : loop index on the altitude grid                                   !
+! alt    : number of the altitude boxes                                      !
+!----------------------------------------------------------------------------!
+! var    : verticaly averaged observed variables                             !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call zero_detect_chim(pr2moy,iz,altmax,j,k,latmax,lonmax)            !
+!----------------------------------------------------------------------------!
+subroutine zero_detect_chim(var,iz,alt,j,k,lat,lon)
+
+  implicit none
+  integer ::  iz,alt,j,k,lat,lon
+  real*4,dimension(lat,lon,alt)  ::  var
+  
+ if(var(j,k,iz).eq.0)then       ! if no value is detected then allocate -9999
+            var(j,k,iz)=-9999
+ endif
+
+end subroutine zero_detect_chim
+!----------------------------------------------------------------------------!
+
+
+
+!----------------------------------------------------------------------------!
+! *** SR_CR_DEPOL_chim *** This routine do the SR CR & DEPOL average except  !
+!                          for the -9999 values                              !
+!----------------------------------------------------------------------------!
+! j      : loop index on latitude grid                                       !
+! k      : loop index on longitude grid                                      ! 
+! lat    : number of the latitude boxes                                      !
+! lon    : number of the longitude boxes                                     !
+! iz     : loop index on the altitude grid                                   !
+! alt    : number of the altitude boxes                                      !
+! num    : index to select the method of calculation                         !
+! var1, var2 : verticaly averaged observed variables                         !
+! var4   : scattering ratio vertically averaged                              ! 
+! ind1   : number of occurence of obs variables contained in var1            !
+! ind2   : number of occurence of obs variables contained in var2            !
+!----------------------------------------------------------------------------!
+! var3   : result of var1/var2                                               !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call SR_CR_DEPOL_chim(pr2moy,molmoy,srmoy,indice,indicem,iz,altmax,  !
+!                             j,k,latmax,lonmax,1,srmoy)                     !
+!----------------------------------------------------------------------------!
+subroutine SR_CR_DEPOL_chim(var1,var2,var3,ind1,ind2,iz,alt,j,k,lat,lon,num, &
+                            var4)
+
+  implicit none
+  integer  ::  iz,alt,j,k,lat,lon,num
+  real*4,dimension(lat,lon,alt)  ::  var1,var2,var3,var4,ind1,ind2
+
+if(num.eq.1)then
+
+   ! calculation if var3 = srmoy
+   if ((var1(j,k,iz).eq.(-9999)).or.(var2(j,k,iz).EQ.(-9999))) then
+      var3(j,k,iz) = -9999
+   else
+      var3(j,k,iz) = (var1(j,k,iz)*ind2(j,k,iz))/(var2(j,k,iz)*ind1(j,k,iz))
+   endif
+
+else 
+
+    ! calculation if var3 is different than srmoy  
+   if(var4(j,k,iz).eq.(-9999))then
+      var3(j,k,iz) = -9999
+   else
+      if ((var1(j,k,iz).eq.(-9999)).or.(var2(j,k,iz).EQ.(-9999))) then    
+       var3(j,k,iz) = -9999
+      else
+       var3(j,k,iz) = (var1(j,k,iz)*ind2(j,k,iz))/(var2(j,k,iz)*ind1(j,k,iz))
+      endif
+   endif
+
+endif
+
+end subroutine SR_CR_DEPOL_chim
+!----------------------------------------------------------------------------!
+
+
+
+!----------------------------------------------------------------------------!
+! *** SR_CR_DEPOL_mean *** This routine do the SR CR & DEPOL average except  !
+!                          for the -9999 values                              !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! iz     : loop index on the altitude grid                                   !
+! nprofs : number of profil                                                  !
+! alt    : number of the altitude boxes                                      !
+! var1, var2 : verticaly averaged observed variables                         !
+! ind1   : number of occurence of obs variables contained in var1            !
+! ind2   : number of occurence of obs variables contained in var2            !
+!----------------------------------------------------------------------------!
+! var3   : result of var1/var2                                               ! 
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :   call SR_CR_DEPOL_mean(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it,   !
+!                              altmax)                                       !
+!----------------------------------------------------------------------------!
+subroutine SR_CR_DEPOL_mean(var1,var2,var3,ind1,ind2,i,iz,nprofs,alt)
+ !  call SR_CR_DEPOL_mean(parmoy,perpmoy,depolmoy,indicep2,indicep,i,iz,it,   &
+ !                              altmax)
+! call SR_CR_DEPOL_mean(parmoy,perpmoy,depolmoy,indicep2,indicep,i,iz,it,   &
+ !                              altmax)
+
+  implicit none
+  integer  ::  i,iz,nprofs,alt
+  real,dimension(alt,nprofs)  ::  var1,var2,var3
+  real,dimension(alt,nprofs)  ::  ind1,ind2
+
+    if ((var1(iz,i).eq.(-9999.)).or.(var2(iz,i).EQ.(-9999.))) then    
+     var3(iz,i) = -9999.
+    elseif ((var1(iz,i).eq.(-888.)).or.(var2(iz,i).EQ.(-888.))) then 
+     var3(iz,i) = -888.
+    elseif ((var1(iz,i).eq.(-777.)).or.(var2(iz,i).EQ.(-777.))) then 
+     var3(iz,i) = -777.  
+    else
+     var3(iz,i) = (var1(iz,i)*ind2(iz,i)) / (var2(iz,i)*ind1(iz,i))
+    endif
+
+end subroutine SR_CR_DEPOL_mean
+!----------------------------------------------------------------------------!
+
+
+
+!----------------------------------------------------------------------------!
+! *** FILTRE_2LVL *** This routine delete the cloud over 21km and do the     !
+!                     the SR average execpt for the nan values.              !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! iz     : loop index on the altitude grid                                   !
+! nprofs : number of profil                                                  !
+! alt    : number of the altitude boxes                                      !
+! var1, var2 : verticaly averaged observed variables                         !
+! ind1   : number of occurence of obs variables contained in var1            !
+! ind2   : number of occurence of obs variables contained in var2            !
+!----------------------------------------------------------------------------!
+! var3   : result of var1/var2                                               ! 
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :   call SR_CR_DEPOL_mean(pr2moy,molmoy,srmoy,indice,indicem,i,iz,it,   !
+!                              altmax)                                       !
+!----------------------------------------------------------------------------!
+!  Purpose : noise could be interprated as cloudy point in the program so,   !
+!            we have built this routine to filter this phenomena over 21km   !
+!            because cloud couldn't appear in this area execpt during the    !
+!            polar winter.                                                   !
+!----------------------------------------------------------------------------!
+subroutine filtre_2lvl(var1,var2,var3,ind1,ind2,i,iz,nprofs,alt,grid)
+
+ implicit none
+ integer  ::  i,iz,nprofs,alt,lvl
+ real*4,dimension(alt,nprofs)  ::  var1,var2,var3
+ real*4,dimension(alt,nprofs)  ::  ind1,ind2
+ character  ::  grid*8
+
+if(gcm.eq.'LMDZ')then
+   lvl=15   ! level to go past in order to apply the filter = 20.8km
+elseif(gcm.eq.'LMDZ40')then
+   lvl=30   !  level to go past in order to apply the filter = 21.1km
+elseif(gcm.eq.'WRF')then
+   lvl=46   !  level to go past in order to apply the filter = 21.7km
+endif
+
+
+
+  if (iz.ge.lvl) then
+
+  ! filter the cloud over 21km + nan values
+    if((((var1(iz,i)*ind2(iz,i))/(var2(iz,i)*ind1(iz,i))).ge.5.) .or.&
+           (var1(iz,i).eq.(-9999)).or.(var2(iz,i).EQ.(-9999)).or.&
+           ((var1(iz,i).eq.(-777)).or.(var2(iz,i).EQ.(-777))))then
+       var3(iz,i) = -777       
+    else
+       ! calculation of the average
+       var3(iz,i) = (var1(iz,i)*ind2(iz,i))/(var2(iz,i)*ind1(iz,i))
+    endif
+
+  elseif((var1(iz,i).eq.(-9999)).or.(var2(iz,i).EQ.(-9999))) then 
+! filter the nan values       
+     var3(iz,i) = -9999
+  elseif ((var1(iz,i).eq.(-888)).or.(var2(iz,i).EQ.(-888))) then 
+     var3(iz,i) = -888
+  elseif ((var1(iz,i).eq.(-777)).or.(var2(iz,i).EQ.(-777))) then 
+     var3(iz,i) = -777       
+  else
+        ! calculation of the average
+     var3(iz,i) = (var1(iz,i)*ind2(iz,i))/(var2(iz,i)*ind1(iz,i))
+  endif
+
+   
+end subroutine filtre_2lvl
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** FRACTION_SUBGRID2 *** This routine calculate the cloudy,clear,         !
+!                           saturated... fraction flag(0/1)                  !
+!----------------------------------------------------------------------------!
+! nprofs   : number of profil                                                !
+! alt      : number of the altitude boxes                                    !
+! i        : loop index on the profil                                        !
+! switch       : switch to chose cloudy or sat mode                          !
+! var          : vertically averaged SR                                      !
+! var1, var2   : verticaly averaged observed variables (atb & mol moy)       !
+! ind1   : number of occurence of obs variables contained in var1            !
+! ind2   : number of occurence of obs variables contained in var2            ! 
+!----------------------------------------------------------------------------!
+! frac1  : fully attenuated fraction                                         !
+! frac2  : cloudy fraction                                                   !
+! frac3  : clear fraction                                                    !
+! frac4  : uncertain fraction                                                !
+! frac5  : NaN fraction                                                      !
+! frac6  : Surface_elevation fraction                                        !
+!----------------------------------------------------------------------------!
+! iz       : loop index on the altitude grid                                 !
+! fracttot : sum of all the fraction (=1)                                    !
+! toplvlcloud  : first cloudy point encountered from the top to the ground   !
+! toplvlsat    : first fully attenuated point encountered from the top to    !
+!                the ground                                                  ! 
+! SeuilClearSr : clear treshold detection = 1.2                              !
+! SeuilSatSr   : fully attenuated treshold detection = 0.01                  !
+! SeuilSrCloud : cloudy treshold detection = 5                               !
+! SeuilDeltAtb : delta atb treshold = 1.4e-03 km-1 sr-1                      !
+! delta        : atb - mol                                                   !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : call fraction_subgrid2(srmoy,pr2moy,indice,molmoy,indicem,satfraction,! 
+!                             cloudfraction,clearfraction,uncertfraction,    ! 
+!                             nanfraction,sefraction,i,altmax,it,switch2)    !
+!----------------------------------------------------------------------------!
+ 
+subroutine fraction_subgrid2(var,var1,ind1,var2,ind2,frac1,frac2,frac3,frac4,&
+                             frac5,frac6,frac7,i,alt,nprofs,switch)!frac7,&
+                          !   frac8,i,alt,nprofs)!frac1bis,frac2bis
+
+  implicit none
+  integer  ::  i,iz,nprofs,alt
+  real*4  ::  fracttot
+  real  ::  toplvlcloud,toplvlsat
+  real, parameter  ::  SeuilClearSr = 1.2  
+  real, parameter  ::   SeuilSatSr = 0.01  
+  real, parameter  ::    SeuilSrCloud = 5.    
+  real,parameter  ::    SeuilDeltAtb = 2.5e-03   
+  real*4  ::  delta    ! delta atb = atb-atbmol
+  character  ::  switch*6
+  real*4,dimension(alt,nprofs)  ::  var
+  real*4,dimension(alt,nprofs)  ::  var1,var2
+  real*4,dimension(alt,nprofs)  ::  ind1,ind2
+  real*4,dimension(alt,nprofs)  ::  frac1,frac2,frac3,frac4,frac5,frac6,frac7!,frac8!,frac2bis,frac1bis
+
+
+delta = 0
+
+toplvlcloud=0; toplvlsat=0
+
+B1 : do iz=alt,1,-1
+   delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+     if ( (var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb) ) then
+        toplvlcloud=iz     ! lvl from first cloudy point
+        exit B1
+     endif
+  enddo B1
+
+ B2 : do iz=alt,1,-1
+    if(iz.lt.toplvlcloud)then
+       if ((var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.             &
+          (var(iz,i).lt.(SeuilSatSr))) then 
+        toplvlsat=iz    ! lvl from first saturated point
+        exit B2
+       endif
+    endif
+  enddo B2
+
+
+
+  do iz=1,alt
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! pts nuageux
+               endif
+elseif(trim(switch).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).gt.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud).and.(var(iz,i).gt.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud).and.   &
+            (delta.lt.SeuilDeltAtb))) then
+                  frac3(iz,i)=frac3(iz,i)+1   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud).and.(var(iz,i).gt.SeuilClearSr).and.&
+             (delta.gt.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif
+  enddo   
+
+
+
+ do  iz=1,alt  
+ fracttot=frac1(iz,i)+frac2(iz,i)+frac3(iz,i)+frac4(iz,i)+frac5(iz,i)+       &
+          frac6(iz,i)+frac7(iz,i) !check = 1
+  if (fracttot.ne.1) then
+     print *, "fraction error"
+     print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i)
+  endif
+enddo
+end subroutine fraction_subgrid2
+!----------------------------------------------------------------------------!
+
+subroutine fraction_subgrid2_8km(seuilsnrlow,seuilsnrhigh,var,var1,ind1,var2,ind2,frac1,frac2,frac3,frac4,&
+                             frac5,frac6,frac7,i,alt,nprofs,toplow,topmid,switch,switch2)!frac7,&
+                          !   frac8,i,alt,nprofs)!frac1bis,frac2bis
+
+  implicit none
+  integer  ::  i,iz,nprofs,alt,toplow,topmid,seuilsnrhigh,seuilsnrlow
+  real*4  ::  fracttot
+  real  ::  toplvlcloud,toplvlsat
+  real, parameter  ::  SeuilStrat = 30.  
+  real, parameter  ::  SeuilClearSr = 1.2  
+  real, parameter  ::   SeuilSatSr = 0.01  
+  real, parameter  ::    SeuilSrCloud = 5.
+  real, parameter  ::    SeuilSrCloud2 = 15
+  real  ::  SeuilSrCloud3
+  real,parameter  ::    SeuilDeltAtb = 2.5e-03   
+  real*4  ::  delta    ! delta atb = atb-atbmol
+  character  ::  switch*5,switch2*6
+  real*4,dimension(alt,nprofs)  ::  var
+  real*4,dimension(alt,nprofs)  ::  var1,var2
+  real*4,dimension(alt,nprofs)  ::  ind1,ind2
+  real*4,dimension(alt,nprofs)  ::  frac1,frac2,frac3,frac4,frac5,frac6,frac7!,frac8!,frac2bis,frac1bis
+
+
+delta = 0
+
+toplvlcloud=0; toplvlsat=0
+
+B1 : do iz=alt,1,-1
+   delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+     if ( (var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb) ) then
+        toplvlcloud=iz     ! lvl from first cloudy point
+        exit B1
+     endif
+  enddo B1
+
+ B2 : do iz=alt,1,-1
+    if(iz.lt.toplvlcloud)then
+       if ((var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.             &
+          (var(iz,i).lt.(SeuilSatSr))) then 
+        toplvlsat=iz    ! lvl from first saturated point
+        exit B2
+       endif
+    endif
+  enddo B2
+
+
+!print *, 'switch2',trim(switch2)
+
+
+if(trim(switch).eq.'day')then
+
+SeuilSrCloud3 = SeuilSrCloud
+
+!print *, 'test'
+
+
+do iz=seuilsnrhigh,alt
+
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ))then
+                  frac3(iz,i)=frac3(iz,i)+1              
+          endif
+
+          if((var(iz,i).ge.SeuilSrCloud3).and.(delta.lt.SeuilDeltAtb)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -777 (surface elevation) 
+          endif 
+
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif          
+enddo   
+
+do iz=1,seuilsnrlow
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ))then
+                  frac3(iz,i)=frac3(iz,i)+1              
+          endif
+
+          if((var(iz,i).ge.SeuilSrCloud3).and.(delta.lt.SeuilDeltAtb)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -777 (surface elevation) 
+          endif
+
+           if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif     
+enddo   
+
+
+B3:   do iz=1,toplow-1
+      if(var(iz,i).gt.SeuilStrat)then
+      SeuilSrCloud3 = SeuilSrCloud2 
+      exit B3
+      endif
+   enddo B3
+
+do iz=seuilsnrlow+1,seuilsnrhigh-1
+ 
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ))then
+                  frac3(iz,i)=frac3(iz,i)+1              
+          endif
+
+          if((var(iz,i).ge.SeuilSrCloud3).and.(delta.lt.SeuilDeltAtb)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -777 (surface elevation) 
+          endif
+
+           if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif
+enddo   
+
+
+!
+elseif(trim(switch).eq.'night')then
+
+
+do iz=1,alt
+
+SeuilSrCloud3 = SeuilSrCloud
+     
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -777 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ))then
+                  frac3(iz,i)=frac3(iz,i)+1              
+          endif
+
+          if((var(iz,i).ge.SeuilSrCloud3).and.(delta.lt.SeuilDeltAtb)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -777 (surface elevation) 
+          endif
+
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif
+enddo   
+
+
+endif
+
+!print *, frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+!                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i)
+
+ do  iz=1,alt  
+ fracttot=frac1(iz,i)+frac2(iz,i)+frac3(iz,i)+frac4(iz,i)+frac5(iz,i)+       &
+          frac6(iz,i)+frac7(iz,i) !check = 1
+  if (fracttot.ne.1) then
+     print *, "fraction error"
+     print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i), i,iz,var(iz,i)
+!     stop
+  endif
+enddo
+
+
+end subroutine fraction_subgrid2_8km
+!----------------------------------------------------------------------------!
+
+
+subroutine fraction_subgrid2_8km_delta(var,var1,ind1,var2,ind2,frac1,frac2,frac3,frac4,&
+                             frac5,frac6,frac7,i,alt,nprofs,toplow,topmid,switch,switch2)!frac7,&
+                          !   frac8,i,alt,nprofs)!frac1bis,frac2bis
+
+  implicit none
+  integer  ::  i,iz,nprofs,alt,toplow,topmid
+  real*4  ::  fracttot
+  real  ::  toplvlcloud,toplvlsat
+  real, parameter  ::  SeuilStrat = 30.  
+  real, parameter  ::  SeuilClearSr = 1.2  
+  real, parameter  ::   SeuilSatSr = 0.01  
+  real, parameter  ::    SeuilSrCloud = 5.
+  real, parameter  ::    SeuilSrCloud2 = 15
+  real  ::  SeuilSrCloud3
+  real,parameter  ::    SeuilDeltAtb = 2.5e-03   
+  real*4  ::  delta    ! delta atb = atb-atbmol
+  character  ::  switch*5,switch2*6
+  real*4,dimension(alt,nprofs)  ::  var
+  real*4,dimension(alt,nprofs)  ::  var1,var2
+  real*4,dimension(alt,nprofs)  ::  ind1,ind2
+  real*4,dimension(alt,nprofs)  ::  frac1,frac2,frac3,frac4,frac5,frac6,frac7!,frac8!,frac2bis,frac1bis
+
+
+delta = 0
+
+toplvlcloud=0; toplvlsat=0
+
+B1 : do iz=alt,1,-1
+   delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+     if ( (var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb) ) then
+        toplvlcloud=iz     ! lvl from first cloudy point
+        exit B1
+     endif
+  enddo B1
+
+ B2 : do iz=alt,1,-1
+    if(iz.lt.toplvlcloud)then
+       if ((var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.             &
+          (var(iz,i).lt.(SeuilSatSr))) then 
+        toplvlsat=iz    ! lvl from first saturated point
+        exit B2
+       endif
+    endif
+  enddo B2
+
+
+!print *, 'switch2',trim(switch2)
+
+
+if(trim(switch).eq.'day')then
+
+SeuilSrCloud3 = SeuilSrCloud
+
+!print *, 'test'
+
+
+do iz=18,alt
+
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3))then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then!.or. &
+         !   ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+         !   (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+         !   (delta.lt.SeuilDeltAtb))) then
+                  frac3(iz,i)=frac3(iz,i)+1   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then!.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif          
+enddo   
+
+do iz=1,5
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3) )then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then !.or. &
+          !  ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+          !  (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+          !  (delta.lt.SeuilDeltAtb))) then
+                  frac3(iz,i)=frac3(iz,i)+1   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then!.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif     
+enddo   
+
+
+B3:   do iz=1,toplow-1
+      if(var(iz,i).gt.SeuilStrat)then
+      SeuilSrCloud3 = SeuilSrCloud2 
+      exit B3
+      endif
+   enddo B3
+
+do iz=6,17
+ 
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3) )then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then !.or. &
+          !  ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+          !  (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+          !  (delta.lt.SeuilDeltAtb))) then
+                  frac3(iz,i)=frac3(iz,i)+1   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then !.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif
+enddo   
+
+
+!
+elseif(trim(switch).eq.'night')then
+
+
+do iz=1,alt
+
+SeuilSrCloud3 = SeuilSrCloud
+     
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac5(iz,i)=frac5(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac6(iz,i)=frac6(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac7(iz,i)=frac7(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3) )then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac2(iz,i)=frac2(iz,i)+1   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac2(iz,i)=frac2(iz,i)+1    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac1(iz,i)=frac1(iz,i)+1  !
+               elseif(iz.gt.toplvlsat)then
+                  frac3(iz,i)=frac3(iz,i)+1    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then !.or. &
+          !  ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+          !  (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+          !  (delta.lt.SeuilDeltAtb))) then
+                  frac3(iz,i)=frac3(iz,i)+1   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then !.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac4(iz,i)=frac4(iz,i)+1   ! indice nb de points incertain
+           endif
+enddo   
+
+
+endif
+
+!print *, frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+!                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i)
+
+ do  iz=1,alt  
+ fracttot=frac1(iz,i)+frac2(iz,i)+frac3(iz,i)+frac4(iz,i)+frac5(iz,i)+       &
+          frac6(iz,i)+frac7(iz,i) !check = 1
+  if (fracttot.ne.1) then
+     print *, "fraction error"
+     print *, 'instant',fracttot,frac1(iz,i),frac2(iz,i),frac3(iz,i),        &
+                        frac4(iz,i),frac5(iz,i),frac6(iz,i),frac7(iz,i), i,iz,var(iz,i)
+!     stop
+  endif
+enddo
+
+
+end subroutine fraction_subgrid2_8km_delta
+!----------------------------------------------------------------------------!
+
+
+subroutine fraction_subgrid3_8km(seuilsnrlow,seuilsnrhigh,altvar,var,var1,ind1,var2,ind2,frac,i,alt,nprofs,switch,switch2)
+
+  implicit none
+  integer  ::  i,iz,nprofs,alt,toplow,topmid,seuilsnrhigh,seuilsnrlow
+  real*4  ::  fracttot
+  real  ::  toplvlcloud,toplvlsat
+  real, parameter  ::  SeuilStrat = 30.  
+  real, parameter  ::  SeuilClearSr = 1.2  
+  real, parameter  ::   SeuilSatSr = 0.01  
+  real, parameter  ::    SeuilSrCloud = 5.
+  real, parameter  ::    SeuilSrCloud2 = 15
+  real  ::  SeuilSrCloud3
+  real,parameter  ::    SeuilDeltAtb = 2.5e-03   
+  real*4  ::  delta    ! delta atb = atb-atbmol
+  character  ::  switch*5,switch2*6
+  real*4,dimension(alt+1)  ::  altvar
+  real*4,dimension(alt,nprofs)  ::  var
+  real*4,dimension(alt,nprofs)  ::  var1,var2
+  real*4,dimension(alt,nprofs)  ::  ind1,ind2
+  real*4,dimension(alt,nprofs)  ::  frac
+
+! uncert+4 nan+1 surf+6 rejec+7 clear+2 cld+3 sat+8
+
+
+delta = 0
+toplvlcloud=0; toplvlsat=0
+
+
+
+B1 : do iz=alt,1,-1
+   delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+     if ( (var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb) ) then
+        toplvlcloud=iz     ! lvl from first cloudy point
+        exit B1
+     endif
+  enddo B1
+
+ B2 : do iz=alt,1,-1
+    if(iz.lt.toplvlcloud)then
+       if ((var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.             &
+          (var(iz,i).lt.(SeuilSatSr))) then 
+        toplvlsat=iz    ! lvl from first saturated point
+        exit B2
+       endif
+    endif
+  enddo B2
+
+
+!print *, 'switch2',trim(switch2)
+
+
+if(trim(switch).eq.'day')then
+
+SeuilSrCloud3 = SeuilSrCloud
+
+!print *, 'test'
+
+! uncert+4 nan+1 surf+6 rejec+7 clear+2 cld+3 sat+8
+
+do iz=seuilsnrhigh,alt   !=18 for cfmip2
+
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+            (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif          
+enddo   
+
+
+do iz=1,seuilsnrlow  ! =5 for cfmip2
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+            (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif     
+enddo   
+
+
+B3:   do iz=1,toplow-1
+      if(var(iz,i).gt.SeuilStrat)then
+      SeuilSrCloud3 = SeuilSrCloud2 
+      exit B3
+      endif
+   enddo B3
+
+do iz=seuilsnrlow+1,seuilsnrhigh-1
+ 
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+            (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif
+enddo   
+
+
+!
+elseif(trim(switch).eq.'night')then
+
+
+do iz=1,alt
+
+SeuilSrCloud3 = SeuilSrCloud
+     
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -777 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3).and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ))then
+                  frac(iz,i)=frac(iz,i)+2   
+          endif
+          if((var(iz,i).ge.SeuilSrCloud3).and.(delta.lt.SeuilDeltAtb)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -777 (surface elevation)            
+          endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+             (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif
+enddo   
+
+
+endif
+
+
+end subroutine fraction_subgrid3_8km
+!----------------------------------------------------------------------------!
+
+
+subroutine fraction_subgrid3_8km_delta(var,var1,ind1,var2,ind2,frac,i,alt,nprofs,switch,switch2)
+
+  implicit none
+  integer  ::  i,iz,nprofs,alt,toplow,topmid
+  real*4  ::  fracttot
+  real  ::  toplvlcloud,toplvlsat
+  real, parameter  ::  SeuilStrat = 30.  
+  real, parameter  ::  SeuilClearSr = 1.2  
+  real, parameter  ::   SeuilSatSr = 0.01  
+  real, parameter  ::    SeuilSrCloud = 5.
+  real, parameter  ::    SeuilSrCloud2 = 15
+  real  ::  SeuilSrCloud3
+  real,parameter  ::    SeuilDeltAtb = 2.5e-03   
+  real*4  ::  delta    ! delta atb = atb-atbmol
+  character  ::  switch*5,switch2*6
+  real*4,dimension(alt,nprofs)  ::  var
+  real*4,dimension(alt,nprofs)  ::  var1,var2
+  real*4,dimension(alt,nprofs)  ::  ind1,ind2
+  real*4,dimension(alt,nprofs)  ::  frac
+
+! uncert+4 nan+1 surf+6 rejec+7 clear+2 cld+3 sat+8
+
+
+delta = 0
+
+toplvlcloud=0; toplvlsat=0
+
+B1 : do iz=alt,1,-1
+   delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+     if ( (var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb) ) then
+        toplvlcloud=iz     ! lvl from first cloudy point
+        exit B1
+     endif
+  enddo B1
+
+ B2 : do iz=alt,1,-1
+    if(iz.lt.toplvlcloud)then
+       if ((var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.             &
+          (var(iz,i).lt.(SeuilSatSr))) then 
+        toplvlsat=iz    ! lvl from first saturated point
+        exit B2
+       endif
+    endif
+  enddo B2
+
+
+!print *, 'switch2',trim(switch2)
+
+
+if(trim(switch).eq.'day')then
+
+SeuilSrCloud3 = SeuilSrCloud
+
+!print *, 'test'
+
+! uncert+4 nan+1 surf+6 rejec+7 clear+2 cld+3 sat+8
+
+do iz=18,alt
+
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3) )then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then !.or. &
+          !  ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+          !  (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+          !  (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then !.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif          
+enddo   
+
+
+do iz=1,5
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3) )then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then !.or. &
+          !  ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+          !  (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+          !  (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then !.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif     
+enddo   
+
+
+B3:   do iz=1,toplow-1
+      if(var(iz,i).gt.SeuilStrat)then
+      SeuilSrCloud3 = SeuilSrCloud2 
+      exit B3
+      endif
+   enddo B3
+
+do iz=6,17
+ 
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3) )then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then !.or. &
+          !  ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+          !  (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+          !  (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then !.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif
+enddo   
+
+
+!
+elseif(trim(switch).eq.'night')then
+
+
+do iz=1,alt
+
+SeuilSrCloud3 = SeuilSrCloud
+     
+     delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+7      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud3) )then !.and.(delta.ge.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch2).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8    ! pts fully attenuated
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts fully attenuated over the cloud ==> clear
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! 1st pt fully attenuated ==> cloud
+               endif
+elseif(trim(switch2).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).ge.(SeuilSatSr)) )then!.or. &
+          !  ((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr).and.&
+          !  (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud3).and.   &
+          !  (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud3).and.(var(iz,i).ge.SeuilClearSr) )then!.and.&
+          !   (delta.ge.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif
+enddo   
+
+
+endif
+
+
+end subroutine fraction_subgrid3_8km_delta
+!----------------------------------------------------------------------------!
+
+
+
+
+
+
+
+
+!----------------------------------------------------------------------------!
+! *** FRACTION_SUBGRID3 *** This routine calculate the cloudy,clear,         !
+!                           saturated... fraction in order to be used by     !
+!                           matlab (flag 1/2/3/4/5/6)                        !
+!----------------------------------------------------------------------------!
+! i        : loop index on the profil                                        !
+! nprofs   : number of profil                                                !
+! alt      : number of the altitude boxes                                    !
+! var1, var2   : verticaly averaged observed variables (atb & mol moy)       !
+! var    : vertically averaged SR                                            ! 
+! ind1   : number of occurence of obs variables contained in var1            !
+! ind2   : number of occurence of obs variables contained in var2            ! 
+!----------------------------------------------------------------------------!
+! frac   : fraction of fully, cloudy, clear, uncert, nan, se point           !
+!          cloud=6, clear=2, fully_att=1, uncert=3, nan=4, SE=5              !
+!----------------------------------------------------------------------------!
+! iz       : loop index on the altitude grid                                 !
+! toplvlcloud  : first cloudy point encountered from the top to the ground   !
+! toplvlsat    : first fully attenuated point encountered from the top to    !
+!                the ground                                                  ! 
+! SeuilClearSr : clear treshold detection = 1.2                              !
+! SeuilSatSr   : fully attenuated treshold detection = 0.01                  !
+! SeuilSrCloud : cloudy treshold detection = 3                               !
+! SeuilDeltAtb : delta atb treshold = 1.4e-03 km-1 sr-1                      !
+! delta        : atb - mol                                                   !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : call fraction_subgrid3(srmoy,pr2moy,indice,molmoy,indicem,fractot,i,  !
+!                             altmax,it)                                     !
+!----------------------------------------------------------------------------!
+subroutine fraction_subgrid3(var,var1,ind1,var2,ind2,frac,i,alt,nprofs,switch)
+
+  implicit none
+  integer  ::  i,iz,nprofs,alt
+  character  ::  switch*6
+
+  real, parameter  ::  SeuilClearSr = 1.2      ! Seuil de saturation en atb en attendant flag
+  real, parameter  ::   SeuilSatSr = 0.01     ! seuil de saturation en ATB=valeur ATBmol à 30km
+  real, parameter  ::    SeuilSrCloud = 5.    ! seuil detection nuageuse sr
+  real,parameter  ::    SeuilCrCloud = 0.   ! seuil detection nuageuse  cr>0.6, ne filtre pas les gros aerosols (atbd calipso)
+  real,parameter  ::    SeuilDeltAtb = 2.5e-03    ! seuil détection unclassify
+  real*4  ::  delta    ! delta atb = atb-atbmol
+  integer  ::  toplvlcloud,toplvlsat
+  real*4,dimension(alt,nprofs)  ::  var
+  real*4,dimension(alt,nprofs)  ::  var1,var2
+  real*4,dimension(alt,nprofs)  ::  ind1,ind2
+  real*4,dimension(alt,nprofs)  ::  frac!,frac7
+
+!flag 1= satfraction, 2=clear, 3=uncert, 5=nan, 4=SE, 6=cloud
+
+
+
+delta = 0
+
+toplvlcloud=0; toplvlsat=0
+
+B1 : do iz=alt,1,-1
+   if((var1(iz,i).eq.(-9999)).or.(var(iz,i).eq.(-888)).or.(var(iz,i).eq.(-777))) exit B1
+   delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+     if ( (var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb) ) then
+        toplvlcloud=iz     ! lvl from first cloudy point
+        exit B1
+     endif
+  enddo B1
+
+ B2 : do iz=alt,1,-1
+    if(iz.lt.toplvlcloud)then
+   if((var1(iz,i).eq.(-9999)).or.(var(iz,i).eq.(-888)).or.(var(iz,i).eq.(-777))) exit B2
+
+       if ((var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.             &
+          (var(iz,i).lt.(SeuilSatSr))) then 
+        toplvlsat=iz    ! lvl from first saturated point
+        exit B2
+       endif
+    endif
+  enddo B2
+
+
+
+  do iz=1,alt
+   if((var1(iz,i).eq.(-9999)).or.(var(iz,i).eq.(-888)).or.(var(iz,i).eq.(-777)))then
+   delta=0
+   else
+   delta= (var1(iz,i)/ind1(iz,i)) - (var2(iz,i)/ind2(iz,i))
+   endif
+           if ( (var(iz,i).eq.(-9999) )  )then! .or.((var(1,iz,i).ne.(-888)).and.(var(1,iz,i).lt.(SeuilSatSr2))) )  then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -9999 
+           endif
+           if (var(iz,i).eq.(-888)) then
+              frac(iz,i)=frac(iz,i)+6      ! indice nb de -888 (surface elevation) 
+           endif
+           if (var(iz,i).eq.(-777)) then
+              frac(iz,i)=frac(iz,i)+1      ! indice nb de -888 (surface elevation) 
+           endif
+           
+           if ((var(iz,i).ge.SeuilSrCloud).and.(delta.gt.SeuilDeltAtb)) then
+                  frac(iz,i)=frac(iz,i)+3   ! indice nb de points nuageux ds boite
+           endif
+           if ( (var(iz,i).ne.(-9999)).and.(var(iz,i).ne.(-888)).and.(var(iz,i).ne.(-777)).and.        &
+                (var(iz,i).lt.(SeuilSatSr)) ) then 
+if(trim(switch).eq.'cloudy')then
+               if(iz.lt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+                  elseif(iz.eq.toplvlsat)then
+                     frac(iz,i)=frac(iz,i)+3    ! pts nuageux
+               endif
+elseif(trim(switch).eq.'sat')then
+               if(iz.le.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+8  !
+               elseif(iz.gt.toplvlsat)then
+                  frac(iz,i)=frac(iz,i)+2    ! pts clair
+               endif
+endif
+           endif
+          if((var(iz,i).lt.SeuilClearSr).and.(var(iz,i).gt.(SeuilSatSr)).or. &
+            ((var(iz,i).lt.SeuilSrCloud).and.(var(iz,i).gt.SeuilClearSr).and.&
+            (delta.lt.SeuilDeltAtb) ).or.((var(iz,i).ge.SeuilSrCloud).and.   &
+            (delta.lt.SeuilDeltAtb))) then
+                  frac(iz,i)=frac(iz,i)+2   
+           
+           endif
+          if((var(iz,i).lt.SeuilSrCloud).and.(var(iz,i).gt.SeuilClearSr).and.&
+             (delta.gt.SeuilDeltAtb))then
+                  frac(iz,i)=frac(iz,i)+4   ! indice nb de points incertain
+           endif
+
+!!$if((i.ge.35618).and.(i.le.35629))then
+!!$print *,i
+!!$if(iz.lt.4)then
+!!$    print *, iz,i, delta,toplvlcloud,toplvlsat
+!!$    print *, var(iz,i),frac(iz,i)
+!!$endif
+!!$
+!!$endif
+
+
+  enddo   
+         
+
+end subroutine fraction_subgrid3
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** VERTICAL_MEAN_CHIM *** This routine calculate the vertical mean for    !
+!                             the CHIMERE grid                               !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! ilid   : loop index of the lidar altitude (583)                            !
+! nprofs : number of profil                                                  !
+! j      : loop index on latitude grid                                       !
+! k      : loop index on longitude grid                                      ! 
+! lat    : number of the latitude boxes                                      !
+! lon    : number of the longitude boxes                                     !
+! iz     : loop index on the altitude grid                                   !
+! alt    : number of the altitude boxes                                      !
+! nvar   : switch to chose cloudy or sat mode                                !
+! var3   : attenuated backscatter                                            !
+! var1   : observed variable to average                                      !
+! ind    : number of occurence of obs variables contained in var1            !
+!----------------------------------------------------------------------------!
+! var2   : averaged variable                                                 !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex  call vertical_mean_chim(atb,pr2moy,atb,indice,i,iz,ilid,it,altmax,     !
+!                             altitude,j,k,latmax,lonmax,1)                  !
+!----------------------------------------------------------------------------!
+subroutine vertical_mean_chim(var1,var2,var3,ind,i,iz,ilid,nprofs,alt,alt2,j,&
+                              k,lat,lon,nvar) 
+
+  implicit none
+  integer  ::  nvar
+  integer  ::  i,nprofs,j,k,iz,alt,ilid,lat,lon
+  integer(kind=2)  ::  alt2
+  real*4,dimension(alt2,nprofs)  ::  var1,var3
+  real*4,dimension(lat,lon,alt)  ::  var2
+  real*4,dimension(lat,lon,alt)  ::  ind
+  
+
+  if (nvar==1) then
+     ! Vertical average for atb
+     if ( (var1(ilid,i).ne.(-9999)).and.(var1(ilid,i).lt.1) ) then
+        var2(j,k,iz)=var2(j,k,iz)+var1(ilid,i)
+        ind(j,k,iz)=ind(j,k,iz)+1 
+     endif
+
+  else
+      ! Vertical average for perp
+     if(nvar==2) then
+        if ( (var1(ilid,i).ne.(-9999)).and.(var3(ilid,i).ne.(-9999)) .and.   &
+             (var3(ilid,i).lt.1) )then 
+                var2(j,k,iz)=var2(j,k,iz)+(var3(ilid,i)-var1(ilid,i))
+                ind(j,k,iz)=ind(j,k,iz)+1 
+        endif
+     else
+      ! Other vertical average
+        if ( var1(ilid,i).ne.(-9999) ) then                            
+           var2(j,k,iz)=var2(j,k,iz)+var1(ilid,i)
+           ind(j,k,iz)=ind(j,k,iz)+1 
+        endif
+     endif
+
+  endif
+                    
+end subroutine vertical_mean_chim
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** VERTICAL_MEAN *** This routine calculate the vertical mean for other   !
+!                       grid                                                 !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! ilid   : loop index of the lidar altitude (583)                            !
+! nprofs : number of profil                                                  !
+! iz     : loop index on the altitude grid                                   !
+! alt    : number of the altitude boxes                                      !
+! alt2   : number of level of the lidar variables                            !
+! nvar   : switch to chose cloudy or sat mode                                !
+! var3   : attenuated backscatter                                            !
+! var1   : observed variable to average                                      !
+! ind    : number of occurence of obs variables contained in var1            ! 
+!----------------------------------------------------------------------------!
+! var2   : averaged variable                                                 !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call vertical_mean(atb,pr2moy,atb,indice,i,iz,ilid,it,altmax,        !
+!                          altitude,1)                                       !
+!----------------------------------------------------------------------------!
+subroutine vertical_mean(var1,var2,var3,ind,i,iz,ilid,nprofs,alt,alt2,nvar)
+!             call vertical_mean(temp2,tempmoy,atb,indicetemp,i,iz,ilid,it,altmax,&
+!                                 altitude,3)    
+  
+  implicit none
+  integer  ::  nvar
+  integer  ::  i,iz,nprofs,alt,ilid
+  integer(kind=2)  ::  alt2
+  real*4,dimension(alt2,nprofs)  ::  var1,var3
+  real*4,dimension(alt,nprofs)  ::  var2
+  real*4,dimension(alt,nprofs)  ::  ind
+  
+
+  if (nvar==1) then ! Vertical average for atb
+
+     if ( (var1(ilid,i).ne.(-9999.)).and.(var1(ilid,i).lt.1).and.(var1(ilid,i).ne.(-888.)).and.(var1(ilid,i).ne.(-777.))) then         
+        var2(iz,i)=var2(iz,i)+var1(ilid,i)
+        ind(iz,i)=ind(iz,i)+1 
+     endif
+
+  elseif(nvar==2) then ! Vertical average for perp
+
+     if ( (var1(ilid,i).ne.(-9999.)).and.(var3(ilid,i).ne.(-9999.)) .and.   &
+          (var3(ilid,i).lt.1).and.(var1(ilid,i).ne.(-888.)) .and.  &
+          (var1(ilid,i).ne.(-777.)) )then 
+         var2(iz,i)=var2(iz,i)+(var3(ilid,i)-var1(ilid,i))
+         ind(iz,i)=ind(iz,i)+1 
+     endif
+
+  elseif(nvar==3) then ! Other vertical average 
+   
+     if (( var1(ilid,i).ne.(-9999.).and.(var1(ilid,i).ne.(-888.)) ) .and.   &
+        (var3(ilid,i).lt.1).and.(var3(ilid,i).ne.(-9999.)).and.  &
+        (var1(ilid,i).ne.(-777.)) ) then                            
+           var2(iz,i)=var2(iz,i)+var1(ilid,i)
+           ind(iz,i)=ind(iz,i)+1 
+     endif
+
+  elseif(nvar==4) then ! TEMP vertical average 
+  
+     if (( var1(ilid,i).ne.(-9999.).and.(var1(ilid,i).ne.(-888.)) ) .and.   &
+        (var1(ilid,i).ne.(-777.)) ) then                            
+           var2(iz,i)=var2(iz,i)+var1(ilid,i)
+           ind(iz,i)=ind(iz,i)+1 
+     endif
+
+
+  endif
+
+                    
+end subroutine vertical_mean
+!----------------------------------------------------------------------------!
+
+
+subroutine vertical_mean_hori(var1,var2,var3,ind,i,iz,ilid,nprofs,alt,alt2,nvar,profavg,profmax)
+  
+  implicit none
+  integer  ::  nvar, n
+  integer  ::  i,iz,nprofs,alt,ilid,profavg,profmax
+  integer(kind=2)  ::  alt2
+  real*4  ::  var2m, indm
+  real*4,dimension(alt2,nprofs)  ::  var1,var3
+  real*4,dimension(alt,nprofs)  ::  var2
+  real*4,dimension(alt,nprofs)  ::  ind
+  
+
+
+
+  if (nvar==1) then
+  
+    if (i.le.profavg)then
+       var2m=0
+       indm=0
+      do n = 0,profmax   
+       ! Vertical average for atb
+         if ( (var1(ilid,1+n).ne.(-9999)).and.(var1(ilid,1+n).lt.1) ) then         
+            var2m=var2m+var1(ilid,1+n)
+            indm=indm+1 
+         endif
+      enddo
+      if (var2m.gt.0) then
+      var2(iz,i)=var2(iz,i)+(var2m/indm)
+      ind(iz,i)=ind(iz,i)+1
+      endif
+
+
+    elseif ( (i.gt.profavg).and.(i.le.(it-(profavg+1))) ) then   
+       var2m=0
+       indm=0
+      do n = 0,profmax   
+         ! Vertical average for atb
+         if ( (var1(ilid,i-profavg+n).ne.(-9999)).and.(var1(ilid,i-profavg+n).lt.1) ) then         
+            var2m=var2m+var1(ilid,i-profavg+n)
+            indm=indm+1 
+         endif
+      enddo
+      if (var2m.gt.0) then
+      var2(iz,i)=var2(iz,i)+(var2m/indm)
+      ind(iz,i)=ind(iz,i)+1
+      endif
+
+    else
+       var2m=0
+       indm=0
+      do n = 0,profmax   
+         ! Vertical average for atb
+         if ( (var1(ilid,it-profmax+n).ne.(-9999)).and.(var1(ilid,it-profmax+n).lt.1) ) then         
+            var2m=var2m+var1(ilid,it-profmax+n)
+            indm=indm+1 
+         endif
+      enddo
+      if (var2m.gt.0) then
+      var2(iz,i)=var2(iz,i)+(var2m/indm)
+      ind(iz,i)=ind(iz,i)+1
+      endif
+
+    endif
+  
+
+  else
+
+     ! Vertical average for perp
+     if(nvar==2) then
+        if ( (var1(ilid,i).ne.(-9999)).and.(var3(ilid,i).ne.(-9999)) .and.   &
+             (var3(ilid,i).lt.1) )then 
+               var2(iz,i)=var2(iz,i)+(var3(ilid,i)-var1(ilid,i))
+               ind(iz,i)=ind(iz,i)+1 
+        endif
+     else
+
+    if (i.le.profavg)then
+       var2m=0
+       indm=0
+      do n = 0,profmax   
+       ! Vertical average for atb
+         if ( (var1(ilid,1+n).ne.(-9999)) ) then         
+            var2m=var2m+var1(ilid,1+n)
+            indm=indm+1 
+         endif
+      enddo
+      if (var2m.gt.0) then
+      var2(iz,i)=var2(iz,i)+(var2m/indm)
+      ind(iz,i)=ind(iz,i)+1
+      endif
+
+
+    elseif ( (i.gt.profavg).and.(i.le.(it-(profavg+1))) ) then   
+       var2m=0
+       indm=0
+      do n = 0,profmax   
+         ! Vertical average for atb
+         if ( (var1(ilid,i-profavg+n).ne.(-9999)) ) then         
+            var2m=var2m+var1(ilid,i-profavg+n)
+            indm=indm+1 
+         endif
+      enddo
+      if (var2m.gt.0) then
+      var2(iz,i)=var2(iz,i)+(var2m/indm)
+      ind(iz,i)=ind(iz,i)+1
+      endif
+
+    else
+       var2m=0
+       indm=0
+      do n = 0,profmax   
+         ! Vertical average for atb
+         if ( (var1(ilid,it-profmax+n).ne.(-9999)) ) then         
+            var2m=var2m+var1(ilid,it-profmax+n)
+            indm=indm+1 
+         endif
+      enddo
+      if (var2m.gt.0) then
+      var2(iz,i)=var2(iz,i)+(var2m/indm)
+      ind(iz,i)=ind(iz,i)+1
+      endif
+
+    endif
+  
+
+
+
+     endif
+
+  endif
+                  
+ 
+
+                    
+end subroutine vertical_mean_hori
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** SE_KM_2_PRES *** This subroutine convert the SE from km to hPa and     !
+!                      allocate -888 to the variable below this threshold    !
+!----------------------------------------------------------------------------!
+! nprofs : number of profil                                                  !
+! i      : loop index on the profil                                          !
+! alt    : number of the altitude boxes                                      !
+! var1   : Surface_elevation (nprofs)                                        !
+! var3   : altitude of lidar lvl in kilometer, (583)                         !
+! var4   : Pressure interpolated from 33lvl to 583lvl in hPa (583,nprofs)    !
+! var5   : pressure of model boxes                                           !
+!----------------------------------------------------------------------------!
+! var2   : Surface_elevation in hPa  (nprofs)                                !
+! var6   : add the surface_elevation to this variable                        !
+!----------------------------------------------------------------------------!
+! iz     : loop index on the altitude grid                                   !
+! j      : loop index on Surface Elevation level                             !
+! ilid   : loop index of the lidar altitude (583)                            !
+! alt2   : number of level of the lidar variables                            !
+! a,b    : coefficient for the interpolation equation                        !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : call SE_km_2_Pres(SE,SEp,altl,pres2,prestop,srmoy,altmax,it,i)        !
+!----------------------------------------------------------------------------!
+subroutine SE_km_2_Pres(var1,var2,var3,var4,var5,var6,alt,nprofs,i)
+
+implicit none
+integer  ::  ilid, iz, alt, nprofs,i,j
+integer,parameter  ::  altitude=583
+real*4  ::  a,b
+real*4,dimension(altitude,nprofs)  ::  var4
+real*4,dimension(alt)  ::  var5
+real,dimension(nprofs)  ::  var1,var2
+real*4,dimension(alt,nprofs)  ::  var6
+real*4,dimension(altitude)  ::  var3
+! var1 = SE, var2 = SEp, var3 = altl, var4 = pres2, var5 = prestop, var6 = srmoy
+do ilid=1,altitude
+  ! print *, var1(1,i), var3(ilid)
+      if( var1(i).eq.var3(ilid) )then
+         var2(i)=var4(ilid,i)
+      else
+        if( var1(i).eq.var3(ilid+1) )then
+             var2(i)=var4(ilid+1,i)
+        else
+          if((var1(i).lt.var3(ilid)).and.(var1(i).gt.var3(ilid+1)))then
+             if( var4(ilid,i).ne.-9999 )then
+               a=(var4(ilid,i)-var4(ilid+1,i))/(var3(ilid)-var3(ilid+1))
+               b=var4(ilid,i)-a*var3(ilid)
+               var2(i)=a*var1(i)+b
+             else
+               var2(i)=-9999
+             endif
+          endif
+        endif
+      endif
+   enddo
+
+   do iz=alt,2,-1 
+         if ( (var2(i).gt.var5(iz)).and.(var2(i).lt.var5(iz-1)) )then
+            do j=1,iz
+               var6(j,i)=-888
+            enddo
+         endif
+   enddo
+
+end subroutine SE_km_2_Pres
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** SE_KM_2_PRES *** This subroutine convert the SE from km to hPa and     !
+!                      allocate -9999 to the variable below this threshold   !
+!----------------------------------------------------------------------------!
+! nprofs : number of profil                                                  !
+! i      : loop index on the profil                                          !
+! alt    : number of the altitude boxes                                      !
+! var1   : Surface_elevation (nprofs)                                        !
+! var3   : altitude of lidar lvl in kilometer, (583)                         !
+! var4   : Pressure interpolated from 33lvl to 583lvl in hPa (583,nprofs)    !
+! var5   : pressure of model boxes                                           !
+!----------------------------------------------------------------------------!
+! var2   : Surface_elevation in hPa  (nprofs)                                !
+! var6   : add the surface_elevation to this variable                        !
+!----------------------------------------------------------------------------!
+! iz     : loop index on the altitude grid                                   !
+! j      : loop index on Surface Elevation level                             !
+! ilid   : loop index of the lidar altitude (583)                            !
+! alt2   : number of level of the lidar variables                            !
+! a,b    : coefficient for the interpolation equation                        !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : call SE_km_2_Pres(SE,SEp,altl,pres2,prestop,srmoy,altmax,it,i)        !
+!----------------------------------------------------------------------------!
+subroutine SE_km_2_Pres2(var1,var2,var3,var4,var5,var6,alt,nprofs,i)
+
+implicit none
+integer  ::  ilid, iz, alt, nprofs,i,j
+integer,parameter  ::  altitude=583
+real*4  ::  a,b
+real*4,dimension(altitude,nprofs)  ::  var4
+real*4,dimension(alt)  ::  var5
+real,dimension(nprofs)  ::  var1,var2
+real*4,dimension(alt,nprofs)  ::  var6
+real*4,dimension(altitude)  ::  var3
+! var1 = SE, var2 = SEp, var3 = altl, var4 = pres2, var5 = prestop, var6 = srmoy
+do ilid=1,altitude
+  ! print *, var1(1,i), var3(ilid)
+      if( var1(i).eq.var3(ilid) )then
+         var2(i)=var4(ilid,i)
+      else
+        if( var1(i).eq.var3(ilid+1) )then
+             var2(i)=var4(ilid+1,i)
+        else
+          if((var1(i).lt.var3(ilid)).and.(var1(i).gt.var3(ilid+1)))then
+             if( var4(ilid,i).ne.-9999 )then
+               a=(var4(ilid,i)-var4(ilid+1,i))/(var3(ilid)-var3(ilid+1))
+               b=var4(ilid,i)-a*var3(ilid)
+               var2(i)=a*var1(i)+b
+             else
+               var2(i)=-9999
+             endif
+          endif
+        endif
+      endif
+   enddo
+
+   do iz=alt,2,-1 
+         if ( (var2(i).gt.var5(iz)).and.(var2(i).lt.var5(iz-1)) )then
+            do j=1,iz
+               var6(j,i)=-9999
+            enddo
+         endif
+   enddo
+
+end subroutine SE_km_2_Pres2
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** SURF_DETECT *** This subroutine detect the surface elevation and       !
+!                     allocate -888 to the variable below this threshold     !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! nprofs : number of profil                                                  !
+! alt    : number of the altitude boxes                                      !
+! var1   : Surface Elevation                                                 !
+! var2   : altitude of model boxes                                           !
+!----------------------------------------------------------------------------!
+! var3   : varically averaged variable                                       !
+!----------------------------------------------------------------------------!
+! j      : loop index on Surface Elevation level                             !
+! iz     : loop index on the altitude grid                                   !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call Surf_detect(SE,altmod,pr2moy,altmax,it,i)                       !
+!----------------------------------------------------------------------------!
+subroutine Surf_detect(var1,var2,var3,alt,nprofs,i)
+
+  implicit none
+
+  integer  ::  iz, alt, nprofs, i,j
+  real*4,dimension(alt+1)  ::  var2
+  real,dimension(nprofs)  ::  var1
+  real*4,dimension(alt,nprofs)  ::  var3
+
+  B1: do iz=1,alt-1 
+         if ( (var1(i).gt.var2(iz)).and.(var1(i).le.var2(iz+1)) )then
+          B2:   do j=1,iz
+                   var3(j,i)=-888
+                enddo  B2
+         exit B1            
+         endif 
+  
+      enddo B1              
+   
+end subroutine Surf_detect
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** SURF_DETECT2 *** This subroutine detect the surface elevation and      !
+!                      allocate -9999 to the variable below this threshold   !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! nprofs : number of profil                                                  !
+! alt    : number of the altitude boxes                                      !
+! var1   : Surface Elevation                                                 !
+! var2   : altitude of model boxes                                           !
+!----------------------------------------------------------------------------!
+! var3   : varically averaged variable                                       !
+!----------------------------------------------------------------------------!
+! j      : loop index on Surface Elevation level                             !
+! iz     : loop index on the altitude grid                                   !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call Surf_detect2(SE,altmod,pr2moy,altmax,it,i)                      !
+!----------------------------------------------------------------------------!
+subroutine Surf_detect2(var1,var2,var3,alt,nprofs,i,mod)
+
+  implicit none
+
+  integer  ::  iz, alt, nprofs, i,j
+  character  ::  mod*8
+  real*4,dimension(alt+1)  ::  var2
+  real,dimension(nprofs)  ::  var1
+  real*4,dimension(alt,nprofs)  ::  var3
+
+if(mod=='altitude')then
+ B11:  do iz=1,alt-1 
+         if ( (var1(i).gt.var2(iz)).and.(var1(i).le.var2(iz+1)) )then
+            B22: do j=1,iz
+                   var3(j,i)=-888
+                enddo B22
+                exit B11
+         endif
+      enddo B11             
+elseif(mod=='pressure')then
+  B12:  do iz=1,alt-1 
+         if ( (var1(i).lt.var2(iz)).and.(var1(i).gt.var2(iz+1)) )then
+         B21:    do j=1,iz
+                   var3(j,i)=-888
+                enddo B21
+                exit B12
+         endif  
+      enddo  B12 
+endif
+  
+end subroutine Surf_detect2
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** SE_ALT_CHIM *** This subroutine detect the surface elevation and       !
+!                     allocate -9999 to the variable below this threshold for!
+!                     the CHIMERE grid                                       !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! nprofs : number of profil                                                  !
+! alt    : number of the altitude boxes                                      !
+! var1   : Surface Elevation                                                 !
+! var2   : altitude of model boxes                                           !
+!----------------------------------------------------------------------------!
+! var3   : varically averaged variable                                       !
+!----------------------------------------------------------------------------!
+! l      : loop index on Surface Elevation level                             !
+! ilid   : loop index on the lidar altitude (583)                            !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call SE_alt_atb(SE,altl,mol3,altitude,it,i)                         !
+!----------------------------------------------------------------------------!
+subroutine SE_alt_atb(var1,var2,var3,alt,nprofs,i)
+
+  implicit none
+
+  integer  ::  ilid, i, nprofs,ilid2,k,iSEdown,iSEup
+  integer(kind=2)  ::  alt
+  real  ::  echothres
+  
+  real*4,dimension(alt)  ::  var2
+  real,dimension(nprofs)  ::  var1
+  real*4,dimension(alt,nprofs)  ::  var3
+              
+iSEdown=0
+
+! Control of SE value
+! if SE=NaN ==> Forced SE to 0
+if(var1(i).eq.-9999.)then
+var1(i)=0
+endif
+
+! Put values below the Surface Elevation threshold to -9999.
+! Find the lidar level called "iSEdown" matching with the Surface elevation
+   b2 :do ilid=2,alt
+         if ( (var1(i).ge.var2(ilid)) )then 
+             iSEdown=ilid
+              b1:  do ilid2=583,ilid,-1
+                 var3(ilid2,i)=-9999.
+                   enddo b1
+                   exit b2
+         endif
+   enddo b2
+
+echothres=1.
+
+if(var1(i).gt.0.)then
+  b4 :do ilid=2,iSEdown-33
+         if(var3(ilid,i).gt.0.15)then
+         echothres=0.4
+         exit b4
+         endif
+      enddo b4
+endif
+
+iSEup=-9999
+
+! Find the highest lidar ATB value of the lidar ground echo called "iSEup"
+if(any(var3(iSEdown-30:iSEdown,i).ge.echothres))then
+  b3: do ilid=iSEdown-30,iSEdown
+     iSEup=ilid
+        if(var3(ilid,i).eq.maxval(var3(iSEdown-30:iSEdown,i)))exit b3
+      enddo  b3        
+endif
+
+if(iSEup.ne.-9999)then
+! Put values from the ground to 3 levels above the iSEup level to -9999. 
+   do ilid=iSEup-3,iSEdown
+      var3(ilid,i)=-9999.
+   enddo
+endif
+
+
+
+end subroutine SE_alt_atb
+!----------------------------------------------------------------------------!
+!----------------------------------------------------------------------------!
+! *** SE_ALT_CHIM *** This subroutine detect the surface elevation and       !
+!                     allocate -9999 to the variable below this threshold for!
+!                     the CHIMERE grid                                       !
+!----------------------------------------------------------------------------!
+! i      : loop index on the profil                                          !
+! nprofs : number of profil                                                  !
+! alt    : number of the altitude boxes                                      !
+! var1   : Surface Elevation                                                 !
+! var2   : altitude of model boxes                                           !
+!----------------------------------------------------------------------------!
+! var3   : varically averaged variable                                       !
+!----------------------------------------------------------------------------!
+! l      : loop index on Surface Elevation level                             !
+! ilid   : loop index on the lidar altitude (583)                            !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex :  call SE_alt_atb(SE,altl,mol3,altitude,it,i)                         !
+!----------------------------------------------------------------------------!
+subroutine SE_alt_mol(var1,var2,var3,alt,nprofs,i)
+
+  implicit none
+
+  integer  ::  ilid, i, nprofs,l
+  integer(kind=2)  ::  alt
+  real*4,dimension(alt)  ::  var2
+  real,dimension(nprofs)  ::  var1
+  real*4,dimension(alt,nprofs)  ::  var3
+              
+   b2 :do ilid=2,alt
+         if ( (var1(i).gt.var2(ilid)) )then 
+              b1:  do l=583,(ilid+1),-1
+                 var3(l,i)=-9999
+                   enddo b1
+               exit b2
+         endif 
+   enddo b2
+
+end subroutine SE_alt_mol
+!----------------------------------------------------------------------------!
+
+
+!****************************************************************************!
+
+
+
+!****************************************************************************!
+!*!!!!!!!!!!!!!!!!!!!!!!! NETCDF RECORDING SUBROUTINE !!!!!!!!!!!!!!!!!!!!!!*!
+!****************************************************************************!
+
+
+!----------------------------------------------------------------------------!
+! *** CHECK *** This subroutine check the status of the nf90 command         !
+!----------------------------------------------------------------------------!
+subroutine check(status)
+
+    integer, intent ( in) :: status
+    
+    if(status /= nf90_noerr) then 
+      print *, trim(nf90_strerror(status))
+      stop "Stopped"
+    end if
+
+end subroutine check  
+!----------------------------------------------------------------------------!
+
+
+!----------------------------------------------------------------------------!
+! *** CREATE_PROFNC *** This routine create a netcdf prof file, and its      !
+!                       dimensions                                           !
+!----------------------------------------------------------------------------!
+! fname      : name of output netcdf MAP3D file                              !
+! dname      : period of MAP3D file (description of ncdf file)               !
+! nlon       : number of the longitude boxes                                 !
+! nlat       : number of the latitude boxes                                  !
+! alt        : number of the altitude boxes                                  !
+! vlon       : values of model longitude from 180 to -180                    !
+! vlat       : values of model latitude from 90 to -90                       !
+! vpres      : values of model altitude from 0 to 19.2km or 40.5km           !
+! vtime      : number of days since 2000/01/01 for the trimonthly perdiod,   !
+!              in day.                                                       !
+! dim        : dimension id of the MaP3D variables recorded in the ncdf      !
+!              files                                                         !
+!----------------------------------------------------------------------------!
+! date       : date from the real-system clock and has form yyyymmdd.        !
+! time       : time from the real-system clock and has form hhmmss.sss.      !
+! zone       : represente the difference with respect to Coordinated         !
+!              Universal Time (UTC), and has form (+-)hhmm.                  !
+! value      : 8 dimension value which contains the year,month,day,hour,     !
+!              minute, seconds and milliseconds of the real-time.            !
+! ndims      : dimension of dim (=4 : lon,lat,alt,time)                      !
+! nc_id      : netcdf file id                                                !
+! lon_varid  : variable id of longitude                                      !
+! lat_varid  : variable id of latitude                                       !
+! pres_varid : variable id of altitude                                       !
+! time_varid : variable id of time                                           !
+! lon_dimid  : dimension id of longitude                                     !
+! lat_dimid  : dimension id of latitude                                      !
+! pres_dimid : dimension id of altitude                                      !
+! time_dimid : dimension id of time                                          !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex  create_profnc(file8,file9,lonmod,latmod,altmod,resd,dimidsp,altmax,    !
+!                   lonmax,latmax)                                           !
+!                                                                            !
+!----------------------------------------------------------------------------!
+subroutine create_profnc(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vtime,dim,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer, parameter ::  ndims = 4, nv=2
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat ,dim(ndims), alt,dim2(nv)
+    integer  ::  lon_varid,lat_varid,alt_varid, time_varid, nc_id,alt_varid2
+    integer  ::  lon_dimid,lat_dimid,alt_dimid,time_dimid, nv_dimid
+    real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+
+  
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_Three-dimensionnal_Cloud_Fraction_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))
+
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+
+    dim = (/lon_dimid, lat_dimid, alt_dimid, time_dimid/)
+    dim2 = (/alt_dimid, nv_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim2, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+ 
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+
+    call check(nf90_enddef(nc_id))
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_profnc
+!----------------------------------------------------------------------------!
+
+
+subroutine create_temp3d(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,  &
+                         vtime,dim,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer, parameter ::  ndims = 4, nv=2
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat ,dim(ndims), alt,dim2(nv)
+    integer  ::  lon_varid,lat_varid,alt_varid, time_varid, nc_id,alt_varid2
+    integer  ::  lon_dimid,lat_dimid,alt_dimid,time_dimid, nv_dimid
+    real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+
+  
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_Three-dimensionnal_Cloud_Fraction_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))
+
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'temp', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+
+    dim = (/lon_dimid, lat_dimid, alt_dimid, time_dimid/)
+    dim2 = (/alt_dimid, nv_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'temp_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the temperature bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'temp_bound', NF90_FLOAT, dim2, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the temperature bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+ 
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+
+    call check(nf90_enddef(nc_id))
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_temp3d
+!----------------------------------------------------------------------------!
+
+
+subroutine create_depolnc3d(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vtime,dim,dim2,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer, parameter ::  ndims = 4, nv=2, ncat1=5,ncat2=25
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat ,dim(ndims), alt,dim3(nv),dim2(5),dim4(2)
+    integer  ::  lon_varid,lat_varid,alt_varid, time_varid, nc_id,alt_varid2,cat_varid
+    integer  ::  lon_dimid,lat_dimid,alt_dimid,time_dimid, nv_dimid,cat_dimid1,cat_dimid2
+    real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+    character(len=25),dimension(ncat1,ncat2)  ::  vcat
+    
+
+vcat(1,:)='UNDEFINED'
+vcat(2,:)='FALSE LIQ'
+vcat(3,:)='FALSE ICE'
+vcat(4,:)='Horizontally Oriented'
+vcat(5,:)='Unphysical value (NOISE)'
+
+  
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_Three-dimensionnal_CloudFraction_Phase_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))  
+ 
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'cat1', ncat1, cat_dimid1))
+    call check(nf90_def_dim(nc_id, 'cat2', ncat2, cat_dimid2))
+
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+    dim = (/lon_dimid, lat_dimid, alt_dimid, time_dimid/)
+    dim2 = (/lon_dimid, lat_dimid, alt_dimid, cat_dimid1, time_dimid/)
+    dim3 = (/alt_dimid, nv_dimid/)
+    dim4 = (/cat_dimid2, cat_dimid1/)
+    
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+ 
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim3, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'category', NF90_CHAR, dim4, cat_varid))
+    call check(nf90_put_att(nc_id, cat_varid, 'lon_name','Category'))
+    call check(nf90_put_att(nc_id, cat_varid, 'units','Arbitrary unit'))
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+
+    call check(nf90_enddef(nc_id))
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+    call check(nf90_put_var(nc_id, cat_varid, vcat))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_depolnc3d
+!----------------------------------------------------------------------------!
+
+subroutine create_ind3d(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vtime,dim,dim2,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer, parameter ::  ndims = 4, nv=2, ncat1=5,ncat2=25
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat ,dim(ndims), alt,dim3(nv),dim2(5),dim4(2)
+    integer  ::  lon_varid,lat_varid,alt_varid, time_varid, nc_id,alt_varid2,cat_varid
+    integer  ::  lon_dimid,lat_dimid,alt_dimid,time_dimid, nv_dimid,cat_dimid1,cat_dimid2
+    real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+    character(len=25),dimension(ncat1,ncat2)  ::  vcat
+    
+
+vcat(1,:)='UNDEFINED'
+vcat(2,:)='FALSE LIQ'
+vcat(3,:)='FALSE ICE'
+vcat(4,:)='Horizontally Oriented'
+vcat(5,:)='Unphysical value (NOISE)'
+
+  
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_Three-dimensionnal_CloudFraction_Phase_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))  
+ 
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'cat1', ncat1, cat_dimid1))
+    call check(nf90_def_dim(nc_id, 'cat2', ncat2, cat_dimid2))
+
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+    dim = (/lon_dimid, lat_dimid, alt_dimid, time_dimid/)
+    dim2 = (/lon_dimid, lat_dimid, alt_dimid, cat_dimid1, time_dimid/)
+    dim3 = (/alt_dimid, nv_dimid/)
+    dim4 = (/cat_dimid2, cat_dimid1/)
+    
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+ 
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim3, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'category', NF90_CHAR, dim4, cat_varid))
+    call check(nf90_put_att(nc_id, cat_varid, 'lon_name','Category'))
+    call check(nf90_put_att(nc_id, cat_varid, 'units','Arbitrary unit'))
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+
+    call check(nf90_enddef(nc_id))
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+    call check(nf90_put_var(nc_id, cat_varid, vcat))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_ind3d
+!----------------------------------------------------------------------------!
+
+
+
+
+!----------------------------------------------------------------------------!
+! *** INSTANTSR2NC *** This routine create & record a netcdf instant_SR file,!
+!                      and its dimensions                                    !
+!----------------------------------------------------------------------------!
+! fname      : name of output netcdf instant_SR file                         !
+! daynight   : switch which allow to select day or night mode                !
+! mod        : name of the grid selected                                     !
+! nlon       : number of the longitude boxes                                 !
+! nlat       : number of the latitude boxes                                  !
+! alt        : number of the altitude boxes                                  !
+! longi      : Longitude in degrees, has dimension (nprof)                   !
+! lati       : Latitude in degrees, has dimension (nprof)                    !
+! vprestop   : values of model altitude from 0 to 19.2km or 40.5km           !
+! SEi        : Surface_Elevation in kilometers, has dimension (nprof)        !
+! timei      : Time converted in UTC fractionned hour of a day               !
+! SR         : scattering ratio calculated, dim=(altmax,nprof)               !
+! vtime      : number of days since 2000/01/01 for the trimonthly perdiod,   !
+!              in day.                                                       !
+!----------------------------------------------------------------------------!
+! fname2     : period of instant_SR file (description of ncdf file)          !
+! date       : date from the real-system clock and has form yyyymmdd.        !
+! time       : time from the real-system clock and has form hhmmss.sss.      !
+! zone       : represente the difference with respect to Coordinated         !
+!              Universal Time (UTC), and has form (+-)hhmm.                  !
+! value      : 8 dimension value which contains the year,month,day,hour,     !
+!              minute, seconds and milliseconds of the real-time.            !
+! dim        : dimension id of the SR                                        !
+! ndims      : dimension of dim (= 2 : alt,nprof)                            !
+! nc_id      : netcdf file id                                                !
+! varid3     : variable id of longitude                                      !
+! varid2     : variable id of latitude                                       !
+! alt_varid  : variable id of altitude                                       !
+! varid5     : variable id of time                                           !
+! varid6     : variable id of SE                                             !
+! varid1     : variable id of instant_SR                                     !
+! alt_dimid  : dimension id of altitude                                      !
+! it_dimid   : dimension id of nprof                                         !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : instantSR2nc(file4,altmod,resd,altmax,switch,gcm,it,lat,lon,SE,temps2,!
+!                   srmoy)                                                   !
+!                                                                            !
+!----------------------------------------------------------------------------!
+subroutine instantSR2nc(fname,vprestop_mid,vprestop_bound,vtime,alt,daynight,mod,nprof,lati,    &
+                        longi,SEi,timei,SR)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname
+    character  ::  fname2*14
+    character  ::  date*8,time*10,zone*5,daynight*5,mod*8
+    integer, parameter ::  ndims = 2, nv=2
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims), alt, nprof,dim2(ndims)
+    integer  ::  alt_varid, varid1, varid2, varid3, varid5, varid6, nc_id,alt_varid2
+    integer  ::  alt_dimid, it_dimid, nv_dimid, cat_varid
+    real  ::  vtime
+    real*8, dimension(nprof) :: timei  
+    real, dimension(nprof) :: SEi    
+    real, dimension(nprof) :: longi
+    real, dimension(nprof) :: lati
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+
+    real*4,dimension(alt,nprof)  ::  SR
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+
+fname2=fname(12:25)
+
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/instant/'//fname,     &
+               NF90_CLOBBER, nc_id))
+
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_instant_SR_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',fname2))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105')) 
+
+
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'it', nprof, it_dimid))
+
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+
+    dim = (/alt_dimid, it_dimid/)
+    dim2 = (/alt_dimid, nv_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, it_dimid, varid3))
+    call check(nf90_put_att(nc_id, varid3, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, varid3, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, varid3, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, it_dimid, varid2))
+    call check(nf90_put_att(nc_id, varid2, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, varid2, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, varid2, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim2, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, it_dimid, varid5))
+    call check(nf90_put_att(nc_id, varid5, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, varid5, 'units','Fractionned UTC hour'))
+    call check(nf90_put_att(nc_id, varid5, 'axis','T')) 
+
+    call check(nf90_def_var(nc_id, 'SE', NF90_FLOAT, it_dimid, varid6))
+    call check(nf90_put_att(nc_id, varid6, 'lon_name','Surface_Elevation'))
+    call check(nf90_put_att(nc_id, varid6, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'instant_SR', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(nc_id, varid1, 'lon_name',                       &
+               'instantaneous Scattering Ratio'))
+    call check(nf90_put_att(nc_id, varid1, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid1, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid1, 'rejected_value',rej))    
+    call check(nf90_put_att(nc_id, varid1, 'Surface_value',se))
+
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+    call check(nf90_put_var(nc_id, varid2, lati))
+    call check(nf90_put_var(nc_id, varid3, longi))
+    call check(nf90_put_var(nc_id, varid5, timei))
+    call check(nf90_put_var(nc_id, varid6, SEi))
+
+    call check(nf90_put_var(nc_id, varid1, SR))
+    call check(nf90_close(nc_id))
+
+end subroutine instantSR2nc
+!----------------------------------------------------------------------------!
+
+subroutine SR_CR_DR_2nc(fname,vprestop_mid,vprestop_bound,vtime,alt,daynight,mod,nprof,lati,    &
+                        longi,SEi,timei,SR,CR,DEPOL)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname
+    character  ::  fname2*14
+    character  ::  date*8,time*10,zone*5,daynight*5,mod*4
+    integer, parameter ::  ndims = 2, nv = 2 
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims), alt, nprof, dim2(ndims)
+    integer  ::  alt_varid, alt_varid2, varid1, varid2, varid3, varid5, varid6,varid7,varid8, nc_id
+    integer  ::  alt_dimid, it_dimid, nv_dimid
+    real  ::  vtime
+    real*8, dimension(nprof) :: timei  
+    real, dimension(nprof) :: SEi    
+    real, dimension(nprof) :: longi
+    real, dimension(nprof) :: lati
+    real*4,dimension(alt,nprof)  ::  SR,CR,DEPOL
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+
+fname2=fname(18:39)
+
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/instant/'//fname,     &
+               NF90_CLOBBER, nc_id))
+
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_instant_SR_DR_CR_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',trim(fname2)))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105')) 
+
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'it', nprof, it_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+    dim = (/alt_dimid, it_dimid/)
+    dim2 = (/alt_dimid, nv_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, it_dimid, varid3))
+    call check(nf90_put_att(nc_id, varid3, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, varid3, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, varid3, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, it_dimid, varid2))
+    call check(nf90_put_att(nc_id, varid2, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, varid2, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, varid2, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim2, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer')) 
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, it_dimid, varid5))
+    call check(nf90_put_att(nc_id, varid5, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, varid5, 'units','Fractionned UTC hour'))
+    call check(nf90_put_att(nc_id, varid5, 'axis','T')) 
+
+    call check(nf90_def_var(nc_id, 'SE', NF90_FLOAT, it_dimid, varid6))
+    call check(nf90_put_att(nc_id, varid6, 'lon_name','Surface_Elevation'))
+    call check(nf90_put_att(nc_id, varid6, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'instant_SR', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(nc_id, varid1, 'lon_name',                       &
+               'instantaneous Scattering Ratio'))
+    call check(nf90_put_att(nc_id, varid1, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid1, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid1, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid1, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'instant_CR', NF90_FLOAT, dim, varid7))
+    call check(nf90_put_att(nc_id, varid7, 'lon_name',                       &
+               'instantaneous Color Ratio'))
+    call check(nf90_put_att(nc_id, varid7, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid7, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid7, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid7, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'instant_DR', NF90_FLOAT, dim, varid8))
+    call check(nf90_put_att(nc_id, varid8, 'lon_name',                       &
+               'instantaneous Depolarization Ratio'))
+    call check(nf90_put_att(nc_id, varid8, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid8, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid8, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid8, 'Surface_value',se))
+
+
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+    call check(nf90_put_var(nc_id, varid2, lati))
+    call check(nf90_put_var(nc_id, varid3, longi))
+    call check(nf90_put_var(nc_id, varid5, timei))
+    call check(nf90_put_var(nc_id, varid6, SEi))
+
+    call check(nf90_put_var(nc_id, varid1, SR))
+    call check(nf90_put_var(nc_id, varid7, CR))
+    call check(nf90_put_var(nc_id, varid8, DEPOL))
+
+
+
+    call check(nf90_close(nc_id))
+
+end subroutine SR_CR_DR_2nc
+!----------------------------------------------------------------------------!
+
+! Same routine as SR_CR_DR_2nc including the record of ATB & ATBmol variables
+subroutine SR_CR_DR_ATB_nc(fname,vprestop_mid,vprestop_bound,vtime,alt,      &
+                           daynight,mod,nprof,lati,longi,SEi,timei,SR,CR,    &
+                           DEPOL,atb,atbm,atbr,atbl,temp,cloudfrac)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname
+    character  ::  fname2*21
+    character  ::  date*8,time*10,zone*5,daynight*5,mod*4
+    integer, parameter ::  ndims = 2, nv = 2 
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims), alt, nprof, dim2(ndims)
+    integer  ::  alt_varid, alt_varid2, varid1, varid2, varid3, varid5, varid6,varid7,varid8,varid9,varid10, nc_id,varid11,varid12,varid13, varid14
+    integer  ::  alt_dimid, it_dimid, nv_dimid
+    real  ::  vtime
+    real*8, dimension(nprof) :: timei  
+    real, dimension(nprof) :: SEi    
+    real, dimension(nprof) :: longi
+    real, dimension(nprof) :: lati
+    real,dimension(alt,nprof)  ::  SR,CR,DEPOL,atb,atbm,atbl,atbr,temp,cloudfrac
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+
+fname2=fname(18:39)
+
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/instant/'//fname,     &
+               NF90_CLOBBER, nc_id))
+
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_instant_SR_DR_CR_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',trim(fname2)))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105')) 
+
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'it', nprof, it_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+    dim = (/alt_dimid, it_dimid/)
+    dim2 = (/alt_dimid, nv_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, it_dimid, varid3))
+    call check(nf90_put_att(nc_id, varid3, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, varid3, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, varid3, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, it_dimid, varid2))
+    call check(nf90_put_att(nc_id, varid2, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, varid2, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, varid2, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim2, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer')) 
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, it_dimid, varid5))
+    call check(nf90_put_att(nc_id, varid5, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, varid5, 'units','Fractionned UTC hour'))
+    call check(nf90_put_att(nc_id, varid5, 'axis','T')) 
+
+    call check(nf90_def_var(nc_id, 'SE', NF90_FLOAT, it_dimid, varid6))
+    call check(nf90_put_att(nc_id, varid6, 'lon_name','Surface_Elevation'))
+    call check(nf90_put_att(nc_id, varid6, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'instant_SR', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(nc_id, varid1, 'lon_name',                       &
+               'instantaneous Scattering Ratio'))
+    call check(nf90_put_att(nc_id, varid1, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid1, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid1, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid1, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'instant_Cloud', NF90_FLOAT, dim, varid14))
+    call check(nf90_put_att(nc_id, varid14, 'lon_name',                       &
+               'instantaneous Cloud Mask'))
+    call check(nf90_put_att(nc_id, varid14, 'Legend','1=NaN, 2=Clear, 3=Cloud, 4=Uncertain, 6=Surface, 7=Rejected, 8=Fully Attenuated' ))
+    call check(nf90_put_att(nc_id, varid14, 'units','Arbitrary unit'))
+
+    call check(nf90_def_var(nc_id, 'instant_CR', NF90_FLOAT, dim, varid7))
+    call check(nf90_put_att(nc_id, varid7, 'lon_name',                       &
+               'instantaneous Color Ratio'))
+    call check(nf90_put_att(nc_id, varid7, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid7, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid7, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid7, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'instant_DR', NF90_FLOAT, dim, varid8))
+    call check(nf90_put_att(nc_id, varid8, 'lon_name',                       &
+               'instantaneous Depolarization Ratio'))
+    call check(nf90_put_att(nc_id, varid8, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid8, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid8, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid8, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'ATB', NF90_FLOAT, dim, varid9))
+    call check(nf90_put_att(nc_id, varid9, 'lon_name',                       &
+               'Attenuated Total Backscatter'))
+    call check(nf90_put_att(nc_id, varid9, 'units','km-1 sr-1'))
+    call check(nf90_put_att(nc_id, varid9, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid9, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid9, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'ATB_mol', NF90_FLOAT, dim, varid10))
+    call check(nf90_put_att(nc_id, varid10, 'lon_name',                       &
+               'ATB of Molecular'))
+    call check(nf90_put_att(nc_id, varid10, 'units','km-1 sr-1'))
+    call check(nf90_put_att(nc_id, varid10, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid10, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid10, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'ATB_per', NF90_FLOAT, dim, varid11))
+    call check(nf90_put_att(nc_id, varid11, 'lon_name',                       &
+               'Attenuated Perpendicular Backscatter'))
+    call check(nf90_put_att(nc_id, varid11, 'units','km-1 sr-1'))
+    call check(nf90_put_att(nc_id, varid11, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid11, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid11, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'ATB_par', NF90_FLOAT, dim, varid12))
+    call check(nf90_put_att(nc_id, varid12, 'lon_name',                       &
+               'Attenuated Parallel Backscatter'))
+    call check(nf90_put_att(nc_id, varid12, 'units','km-1 sr-1'))
+    call check(nf90_put_att(nc_id, varid12, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid12, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid12, 'Surface_value',se))
+
+    call check(nf90_def_var(nc_id, 'TEMP', NF90_FLOAT, dim, varid13))
+    call check(nf90_put_att(nc_id, varid13, 'lon_name',                       &
+               'Temperature'))
+    call check(nf90_put_att(nc_id, varid13, 'units','Celcius degree'))
+    call check(nf90_put_att(nc_id, varid13, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid13, 'Rejected_value',rej))
+    call check(nf90_put_att(nc_id, varid13, 'Surface_value',se))
+
+
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+    call check(nf90_put_var(nc_id, varid2, lati))
+    call check(nf90_put_var(nc_id, varid3, longi))
+    call check(nf90_put_var(nc_id, varid5, timei))
+    call check(nf90_put_var(nc_id, varid6, SEi))
+
+    call check(nf90_put_var(nc_id, varid1, SR))
+    call check(nf90_put_var(nc_id, varid14, cloudfrac))
+    call check(nf90_put_var(nc_id, varid7, CR))
+    call check(nf90_put_var(nc_id, varid8, DEPOL))
+    call check(nf90_put_var(nc_id, varid9, atb))
+    call check(nf90_put_var(nc_id, varid10, atbm))
+    call check(nf90_put_var(nc_id, varid11, atbr))
+    call check(nf90_put_var(nc_id, varid12, atbl))
+    call check(nf90_put_var(nc_id, varid13, temp))
+
+
+
+
+    call check(nf90_close(nc_id))
+
+end subroutine SR_CR_DR_ATB_nc
+!----------------------------------------------------------------------------!
+
+
+subroutine instant_phase(fname,nalt,nprof,phase)
+implicit none
+character(len=*)  ::  fname
+integer,dimension(2)  ::  dimm
+integer  ::  ncid,varid, alt_dimid,it_dimid,ndims
+integer  ::  nalt,nprof
+real*4  ::  phase(nalt,nprof)
+
+!print *, 'instant phase routine'
+
+!print *, trim(fname)
+!print *, '/bdd/CFMIP/GOCCP/instant_SR_CR_DR/temp/'//trim(fname)
+
+    call check(NF90_OPEN('./out/instant/'//trim(fname),NF90_WRITE,ncid))
+
+call check(NF90_REDEF(ncid))
+
+    call check(nf90_inq_dimid(ncid, 'altitude',  alt_dimid))
+    call check(nf90_inq_dimid(ncid, 'it', it_dimid))
+
+    dimm = (/alt_dimid, it_dimid/)
+
+    call check(nf90_def_var(ncid, 'instant_Phase', NF90_FLOAT, dimm, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                       &
+               'instantaneous Cloud Phase Mask'))
+    call check(nf90_put_att(ncid, varid, 'Legend','1=LIQ, 2=ICE, 3=UNDEFINED, 4=FALSE LIQ, 5=FALSE ICE, 6=Horizontally Oriented, 7=Unphysical value (NOISE)' ))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+    call check(nf90_put_att(ncid, varid, 'Surface_value','-888'))
+
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid, phase))
+
+    call check(nf90_close(ncid))
+
+endsubroutine instant_phase
+
+
+subroutine SR_DEPOL_2nc(fname,vprestop,vtime,alt,daynight,mod,nprof,lati,    &
+                        longi,SEi,timei,SR,DEPOL)
+!!$  call SR_DEPOL_2nc(file4,altmod,resd,altmax,switch,gcm,it,lat,lon,SE,temps2,&
+!!$                  srmoy,depolmoy)
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname
+    character  ::  fname2*13
+    character  ::  date*8,time*10,zone*5,daynight*5,mod*8
+    integer, parameter ::  ndims = 2
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims), alt, nprof
+    integer  ::  alt_varid, varid1, varid2, varid3, varid5, varid6,varid7,varid8, nc_id
+    integer  ::  alt_dimid, it_dimid
+    real  ::  vtime
+    real*8, dimension(nprof) :: timei  
+    real, dimension(nprof) :: SEi    
+    real, dimension(nprof) :: longi
+    real, dimension(nprof) :: lati
+    real,dimension(alt)  ::  vprestop
+    real*4,dimension(alt,nprof)  ::  SR,DEPOL
+
+fname2=fname(12:26)
+
+    call date_and_time(date,time,zone,value)
+    call check(nf90_create('./out/tmp/'//fname,     &
+               NF90_CLOBBER, nc_id))
+
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description',               &
+               'GOCCP_instant_SR_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',fname2))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'it', nprof, it_dimid))
+
+    dim = (/alt_dimid, it_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, it_dimid, varid3))
+    call check(nf90_put_att(nc_id, varid3, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, varid3, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, varid3, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, it_dimid, varid2))
+    call check(nf90_put_att(nc_id, varid2, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, varid2, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, varid2, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'altitude', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Altitude'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, it_dimid, varid5))
+    call check(nf90_put_att(nc_id, varid5, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, varid5, 'units','Fractionned UTC hour'))
+    call check(nf90_put_att(nc_id, varid5, 'axis','T')) 
+
+    call check(nf90_def_var(nc_id, 'SE', NF90_FLOAT, it_dimid, varid6))
+    call check(nf90_put_att(nc_id, varid6, 'lon_name','Surface_Elevation'))
+    call check(nf90_put_att(nc_id, varid6, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'instant_SR', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(nc_id, varid1, 'lon_name',                       &
+               'instantaneous Scattering Ratio'))
+    call check(nf90_put_att(nc_id, varid1, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid1, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid1, 'Surface_value','-888'))
+
+    call check(nf90_def_var(nc_id, 'instant_DEPOL', NF90_FLOAT, dim, varid8))
+    call check(nf90_put_att(nc_id, varid8, 'lon_name',                       &
+               'instantaneous Depolarization'))
+    call check(nf90_put_att(nc_id, varid8, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, varid8, '_FillValue',nan))
+    call check(nf90_put_att(nc_id, varid8, 'Surface_value','-888'))
+
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, alt_varid, vprestop))
+    call check(nf90_put_var(nc_id, varid2, lati))
+    call check(nf90_put_var(nc_id, varid3, longi))
+    call check(nf90_put_var(nc_id, varid5, timei))
+    call check(nf90_put_var(nc_id, varid6, SEi))
+
+    call check(nf90_put_var(nc_id, varid1, SR))
+    call check(nf90_put_var(nc_id, varid8, DEPOL))
+
+
+
+    call check(nf90_close(nc_id))
+
+end subroutine SR_DEPOL_2nc
+!----------------------------------------------------------------------------!
+
+
+
+
+
+
+
+
+
+
+
+
+!----------------------------------------------------------------------------!
+! *** PROF_RECVAR2NC *** This routine record the prof variables in the netcdf!
+!                        prof file                                           !
+!----------------------------------------------------------------------------!
+! fname      : name of output netcdf MAP3D file                              !
+! dim        : dimension id of the SR                                        !
+! cloud      : fraction of cloudy point                                      !
+! clear      : fraction of clear point                                       !
+! sat        : fraction of fully attenuated point                            !
+! uncer      : fraction of unclassify point                                  !
+! nan        : fraction of nan point                                         !
+! se         : fraction of se point                                          !
+! nlon       : number of the longitude boxes                                 !
+! nlat       : number of the latitude boxes                                  !
+! alt        : number of the altitude boxes                                  !
+!----------------------------------------------------------------------------!
+! nanb       : Not a Number value                                            !
+! ndims      : dimension of dim (= 4 : lon,lat,alt,time)                     !
+! ncid       : netcdf file id                                                !
+! varid3     : variable id of cloud fraction                                 !
+! varid4     : variable id of clear fraction                                 !
+! varid5     : variable id of fully attenuated fraction                      !
+! varid6     : variable id of unclassify fraction                            !
+! varid7     : variable id of nan fraction                                   !
+! varid8     : variable id of se fraction                                    !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : prof_recvar2nc(monthcloudfract,monthclearfract,monthsatfract,         !
+!                     monthuncertfract,monthnanfract,monthsefract,dimidsp,   ! 
+!                     file8,altmax,lonmax,latmax)                            !
+!                                                                            !
+!----------------------------------------------------------------------------!
+subroutine prof_recvar2nc(cloud,clear,uncer,dim,fname,alt,nlon,nlat)!nan,se,sat
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=4
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+    integer  ::  nlon , nlat,dim(ndims),alt
+    integer  ::  varid3,varid4,varid5,varid6,varid7,varid8, ncid
+    character(LEN=*)   ::  fname
+    real*4,dimension(nlon,nlat,alt)  ::  cloud,clear,uncer!,sat,nan,se
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'clcalipso', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO 3D Cloud fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clrcalipso', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO 3D Clear fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+   ! call check(nf90_def_var(ncid, 'monthsatfract', NF90_FLOAT, dim, varid5))
+   ! call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+   !            'Full Attenuated fraction monthly mean'))
+   ! call check(nf90_put_att(ncid, varid5, 'units','1 fraction'))
+   ! call check(nf90_put_att(ncid, varid5, '_FillValue',nanb))
+
+   call check(nf90_def_var(ncid, 'uncalipso', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO 3D Undefined fraction'))
+    call check(nf90_put_att(ncid, varid6, 'units','1 fraction'))
+   call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+
+!    call check(nf90_def_var(ncid, 'monthnanfract', NF90_FLOAT, dim, varid7))
+!    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+!               'Missing value fraction monthly mean'))
+!    call check(nf90_put_att(ncid, varid7, 'units','1 fraction'))
+ !   call check(nf90_put_att(ncid, varid7, '_FillValue',nanb))
+
+ !   call check(nf90_def_var(ncid, 'monthsefract', NF90_FLOAT, dim, varid8))
+ !   call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+ !              'Surface Elevation fraction monthly mean'))
+ !   call check(nf90_put_att(ncid, varid8, 'units','1 fraction'))
+ !   call check(nf90_put_att(ncid, varid8, '_FillValue',nanb))
+
+!!$    call check(nf90_def_var(ncid, 'monthindphase', NF90_FLOAT, dim, varid9))
+!!$    call check(nf90_put_att(ncid, varid9, 'lon_name','indice of water Phase monthly mean'))
+!!$    call check(nf90_put_att(ncid, varid9, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid9, '_FillValue',nanb))
+!!$  
+!!$    call check(nf90_def_var(ncid, 'monthatbmoy', NF90_FLOAT, dim, varid1))
+!!$    call check(nf90_put_att(ncid, varid1, 'lon_name','Total Attenuated Backscatter 532 monthly mean'))
+!!$    call check(nf90_put_att(ncid, varid1, 'units','per kilometer per steradian'))
+!!$    call check(nf90_put_att(ncid, varid1, '_FillValue',nanb))
+!!$
+!!$    call check(nf90_def_var(ncid, 'monthatbmolmoy', NF90_FLOAT, dim, varid2))
+!!$    call check(nf90_put_att(ncid, varid2, 'lon_name','Molecular Total Attenuated Backscatter monthly mean'))
+!!$    call check(nf90_put_att(ncid, varid2, 'units','per kilometer per steradian'))
+!!$    call check(nf90_put_att(ncid, varid2, '_FillValue',nanb))
+
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid3, cloud))
+    call check(nf90_put_var(ncid, varid4, clear))
+  !  call check(nf90_put_var(ncid, varid5, sat))
+    call check(nf90_put_var(ncid, varid6, uncer))
+   ! call check(nf90_put_var(ncid, varid7, nan))
+   ! call check(nf90_put_var(ncid, varid8, se))
+!!$    call check(nf90_put_var(ncid, varid1, pr2moy))
+!!$    call check(nf90_put_var(ncid, varid2, molmoy))
+!!$    call check(nf90_put_var(ncid, varid9, phase))
+
+    call check(nf90_close(ncid))
+
+endsubroutine prof_recvar2nc
+!----------------------------------------------------------------------------!
+
+subroutine temp_recvar2nc(cloud,liq,ice,phase,dim,fname,alt,nlon,nlat)!nan,se,sat
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=4
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+    integer  ::  nlon , nlat,dim(ndims),alt
+    integer  ::  varid3,varid4,varid5,varid6,varid7,varid8, ncid
+    character(LEN=*)   ::  fname
+    real*4,dimension(nlon,nlat,alt)  ::  cloud,ice,liq,phase !,sat,nan,se
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cltemp', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO 3D Cloud fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltemp_liq', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO 3D Liquid fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltemp_ice', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO 3D Ice fraction'))
+    call check(nf90_put_att(ncid, varid6, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltemp_phase', NF90_FLOAT, dim, varid7))
+    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+               'CALIPSO 3D Ratio fraction'))
+    call check(nf90_put_att(ncid, varid7, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid3, cloud))
+    call check(nf90_put_var(ncid, varid4, liq))
+    call check(nf90_put_var(ncid, varid6, ice))
+    call check(nf90_put_var(ncid, varid7, phase))
+
+    call check(nf90_close(ncid))
+
+endsubroutine temp_recvar2nc
+!----------------------------------------------------------------------------!
+
+
+subroutine depol_recvar2nc(ice,water,dim,fname,alt,nlon,nlat)!nan,se,sat
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=4
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+    integer  ::  nlon , nlat,dim(ndims),alt
+    integer  ::  varid3,varid4,varid5,varid6,varid7,varid8, ncid
+    character(LEN=*)   ::  fname
+    real*4,dimension(nlon,nlat,alt)  ::  ice,water!,ind !,sat,nan,se
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'ice_cloud', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO 3D Ice Cloud Phase fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'water_cloud', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO 3D Water Cloud Phase fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+!!$    call check(nf90_def_var(ncid, 'ind_phase', NF90_FLOAT, dim, varid5))
+!!$    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+!!$               'CALIPSO 3D Indice Phase fraction'))
+!!$    call check(nf90_put_att(ncid, varid5, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+ 
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid3, ice))
+    call check(nf90_put_var(ncid, varid4, water))
+!    call check(nf90_put_var(ncid, varid5, ind))
+
+    call check(nf90_close(ncid))
+
+endsubroutine depol_recvar2nc
+!----------------------------------------------------------------------------!
+
+subroutine depol_recvar2ncocc(ice,water,un,phase,ind,dim,dim2,fname,alt,nlon,nlat)!nan,se,sat
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=4, ncat=5
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+    integer  ::  nlon , nlat,dim(ndims),alt,dim2(ncat)
+    integer  ::  varid3,varid4,varid5,varid6,varid7,varid8, varid9, ncid
+    character(LEN=*)   ::  fname
+    real*4,dimension(nlon,nlat,alt)  ::  ice,water,phase,ind
+    real*4,dimension(nlon,nlat,alt,ncat)  ::  un  
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'clcalipso_ice', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO 3D Ice Cloud Phase fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clcalipso_liq', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO 3D Liquid Cloud Phase fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clcalipso_un', NF90_FLOAT, dim2, varid5))
+    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+               'CALIPSO 3D UNCLASS Cloud Phase fraction'))
+    call check(nf90_put_att(ncid, varid5, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clcalipso_RPIC', NF90_FLOAT, dim, varid9))
+    call check(nf90_put_att(ncid, varid9, 'lon_name',                        &
+               'CALIPSO 3D Relative Percentage of Ice in Cloud'))
+    call check(nf90_put_att(ncid, varid9, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid9, '_FillValue',nan))
+    call check(nf90_put_att(ncid, varid9, 'Other_Phase',rej))
+
+!!$    call check(nf90_def_var(ncid, 'ind', NF90_FLOAT, dim, varid8))
+!!$    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+!!$               'CALIPSO 3D Indice Phase fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+!!$ 
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid3, ice))
+    call check(nf90_put_var(ncid, varid4, water))
+    call check(nf90_put_var(ncid, varid5, un))
+    call check(nf90_put_var(ncid, varid9, phase))
+!!$     call check(nf90_put_var(ncid, varid8, ind))
+
+    call check(nf90_close(ncid))
+
+endsubroutine depol_recvar2ncocc
+!----------------------------------------------------------------------------!
+! call record_ind3d(sum(cloudfractday,4),sum(indday,4),sum(icecloudfractday,4), &
+!                  sum(watercloudfractday,4),sum(uncloudfractday,4),  &
+!                  dimidsp,dimidsp2,file8,altmax,lonmax-1,latmax-1)
+subroutine record_ind3d(cloud,tot,ice,water,un,dim,dim2,fname,alt,nlon,nlat)!nan,se,sat
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=4, ncat=5
+    real,parameter  ::  nan=-9999. , rej=-777. , se=-888.
+    integer  ::  nlon , nlat,dim(ndims),alt,dim2(ncat)
+    integer  ::  varid2,varid1,varid3,varid4,varid5,varid6,varid7,varid8, varid9, ncid
+    character(LEN=*)   ::  fname
+    real*4,dimension(nlon,nlat,alt)  ::  tot,cloud,ice,water,phase
+    real*4,dimension(nlon,nlat,alt,ncat)  ::  un  
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'clcalipso', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'CALIPSO 3D Cloud'))
+    call check(nf90_put_att(ncid, varid2, 'units','1'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'sample', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'CALIPSO 3D Sample'))
+    call check(nf90_put_att(ncid, varid1, 'units','1'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clcalipso_ice', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO 3D Ice Cloud Phase occurrences'))
+    call check(nf90_put_att(ncid, varid3, 'units','1'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clcalipso_liq', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO 3D Liquid Cloud Phase occurrences'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 occurrences'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clcalipso_un', NF90_FLOAT, dim2, varid5))
+    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+               'CALIPSO 3D UNCLASS Cloud Phase occurrences'))
+    call check(nf90_put_att(ncid, varid5, 'units','1'))
+    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+
+
+!!$    call check(nf90_def_var(ncid, 'ind', NF90_FLOAT, dim, varid8))
+!!$    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+!!$               'CALIPSO 3D Indice Phase occurrences'))
+!!$    call check(nf90_put_att(ncid, varid8, 'units','1 fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+!!$ 
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid2, cloud))
+    call check(nf90_put_var(ncid, varid1, tot))
+    call check(nf90_put_var(ncid, varid3, ice))
+    call check(nf90_put_var(ncid, varid4, water))
+    call check(nf90_put_var(ncid, varid5, un))
+
+    call check(nf90_close(ncid))
+
+endsubroutine record_ind3d
+!----------------------------------------------------------------------------!
+
+
+
+
+!----------------------------------------------------------------------------!
+! *** CREATE_MAPNC ***  This routine create a netcdf map file, and its       !
+!                       dimensions                                           !
+!----------------------------------------------------------------------------!
+! fname      : name of output netcdf MapLowMidHigh file                      !
+! dname      : period of MapLowMidHigh file (description of ncdf file)       !
+! grid       : name of the grid selected (cfmip/lmdz/nasa)                   !
+! nlon       : number of the longitude boxes                                 !
+! nlat       : number of the latitude boxes                                  !
+! vlon       : values of model longitude from 180 to -180                    !
+! vlat       : values of model latitude from 90 to -90                       !
+! vtime      : number of days since 2000/01/01 for the trimonthly perdiod,   !
+!              in day.                                                       !
+! dim        : dimension id of the MaPLowMidHigh var recorded in the ncdf    !
+!----------------------------------------------------------------------------!
+! toplvl     : values of isccp top levels                                    !
+!              files                                                         !
+! ndims      : dimension of dim (=3 : lon,lat,time)                          !
+! nc_id      : netcdf file id                                                !
+! lon_varid  : variable id of longitude                                      !
+! lat_varid  : variable id of latitude                                       !
+! pres_varid : variable id of toplvl                                         !
+! time_varid : variable id of time                                           !
+! lon_dimid  : dimension id of longitude                                     !
+! lat_dimid  : dimension id of latitude                                      !
+! pres_dimid : dimension id of toplvl                                        !
+! time_dimid : dimension id of time                                          !
+! date       : date from the real-system clock and has form yyyymmdd.        !
+! time       : time from the real-system clock and has form hhmmss.sss.      !
+! zone       : represente the difference with respect to Coordinated         !
+!              Universal Time (UTC), and has form (+-)hhmm.                  !
+! value      : 8 dimension value which contains the year,month,day,hour,     !
+!              minute, seconds and milliseconds of the real-time.            !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : create_mapnc(file8,file9,lonmod,latmod,resd,dimidsm,gcm,lonmax,latmax)!
+!                                                                            !
+!----------------------------------------------------------------------------!
+subroutine create_mapnc(fname,dname,vlon,vlat,vtime,dim,grid,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5,grid*8
+    integer, parameter ::  ndims = 3
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat,dim(ndims)
+    integer  ::  lon_varid,lat_varid,pres_varid, time_varid,nc_id
+    integer  ::  lon_dimid,lat_dimid,pres_dimid,time_dimid
+	real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real,dimension(3)  ::  toplvl
+
+if(trim(grid).eq.'CFMIP')then
+
+toplvl(1)=3.36
+toplvl(2)=6.72
+toplvl(3)=19.2
+
+
+elseif(trim(grid).eq.'NASA')then
+
+toplvl(1)=3.36
+toplvl(2)=6.72
+toplvl(3)=19.2
+
+elseif(trim(grid).eq.'LMDZ40')then
+toplowl = 14;       
+topmidl = 18;      
+tophighl = 40  
+elseif(trim(grid).eq.'LMDZ')then
+toplowl = 7;        
+topmidl = 9       
+tophighl = 19   !
+endif
+  
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_Low_Mid_High_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105')) 
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'toplvl', 3, pres_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+ 
+     dim = (/lon_dimid, lat_dimid, time_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+   call check(nf90_def_var(nc_id, 'toplvl', NF90_FLOAT,pres_dimid,pres_varid))
+   call check(nf90_put_att(nc_id, pres_varid,'lon_name','Top Altitude Level'))
+    call check(nf90_put_att(nc_id, pres_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, pres_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, pres_varid, 'axis','Z'))   
+
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+	
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, pres_varid, toplvl))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_mapnc
+!----------------------------------------------------------------------------!
+
+
+subroutine create_mapnc_phase(fname,dname,vlon,vlat,vtime,dim,dim2,grid,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5,grid*8
+    integer, parameter ::  ndims = 3, ndims2 = 4, ncat1=5, ncat2=25
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat,dim(ndims), dim2(ndims2),dim3(2)
+    integer  ::  lon_varid,lat_varid,pres_varid, time_varid,nc_id,cat_varid
+    integer  ::  lon_dimid,lat_dimid,pres_dimid,time_dimid, cat_dimid1,cat_dimid2
+	real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real,dimension(3)  ::  toplvl
+    character(len=25),dimension(ncat1,ncat2)  ::  vcat
+!    character(len=10),dimension(ncat) :: vcat
+
+vcat(1,:)='UNDEFINED'
+vcat(2,:)='FALSE LIQ'
+vcat(3,:)='FALSE ICE'
+vcat(4,:)='Horizontally Oriented'
+vcat(5,:)='Unphysical Value (NOISE)'
+
+if(trim(grid).eq.'CFMIP')then
+
+toplvl(1)=3.36
+toplvl(2)=6.72
+toplvl(3)=19.2
+
+
+elseif(trim(grid).eq.'NASA')then
+
+toplvl(1)=3.36
+toplvl(2)=6.72
+toplvl(3)=19.2
+
+elseif(trim(grid).eq.'LMDZ40')then
+toplowl = 14;       
+topmidl = 18;      
+tophighl = 40  
+elseif(trim(grid).eq.'LMDZ')then
+toplowl = 7;        
+topmidl = 9       
+tophighl = 19   !
+endif
+  
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_Low_Mid_High_Phase_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105')) 
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'cat1', ncat1, cat_dimid1))
+    call check(nf90_def_dim(nc_id, 'cat2', ncat2, cat_dimid2))
+
+    call check(nf90_def_dim(nc_id, 'toplvl', 3, pres_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+ 
+     dim = (/lon_dimid, lat_dimid, time_dimid/)
+     dim2 = (/lon_dimid, lat_dimid, cat_dimid1, time_dimid/)
+     dim3=(/cat_dimid2,cat_dimid1 /)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'category', NF90_CHAR, dim3, cat_varid))
+    call check(nf90_put_att(nc_id, cat_varid, 'lon_name','Category'))
+    call check(nf90_put_att(nc_id, cat_varid, 'units','Arbitrary unit'))
+
+    call check(nf90_def_var(nc_id, 'toplvl', NF90_FLOAT,pres_dimid,pres_varid))
+    call check(nf90_put_att(nc_id, pres_varid,'lon_name','Top Altitude Level'))
+    call check(nf90_put_att(nc_id, pres_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, pres_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, pres_varid, 'axis','Z'))   
+
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+	
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, cat_varid, vcat))
+    call check(nf90_put_var(nc_id, pres_varid, toplvl))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_mapnc_phase
+!----------------------------------------------------------------------------!
+
+
+
+subroutine create_mapnc2(fname,dname,vlon,vlat,vtime,dim,dim2,dim3,dim4,grid,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5,grid*5
+    integer, parameter ::  ndims = 3, ndims2=4, histmax=10, histmax2=40,histmax3=28
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat,dim(ndims), dim2(ndims2),dim3(ndims2),dim4(ndims2)
+    integer  ::  lon_varid,lat_varid,pres_varid, time_varid,nc_id
+    integer  ::  lon_dimid,lat_dimid,pres_dimid,time_dimid,hist_dimid,hist2_dimid,hist3_dimid
+	real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real,dimension(3)  ::  toplvl
+
+if(trim(grid).eq.'CFMIP')then
+
+toplvl(1)=3.36
+toplvl(2)=6.72
+toplvl(3)=19.2
+
+
+elseif(trim(grid).eq.'NASA')then
+
+toplvl(1)=3.36
+toplvl(2)=6.72
+toplvl(3)=19.2
+
+elseif(trim(grid).eq.'LMDZ40')then
+toplowl = 14;       
+topmidl = 18;      
+tophighl = 40  
+elseif(trim(grid).eq.'LMDZ')then
+toplowl = 7;        
+topmidl = 9       
+tophighl = 19   !
+endif
+  
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_Low_Mid_High_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'hist', histmax, hist_dimid))
+    call check(nf90_def_dim(nc_id, 'hist2', histmax2, hist2_dimid))
+    call check(nf90_def_dim(nc_id, 'hist3', histmax3, hist3_dimid))
+
+    call check(nf90_def_dim(nc_id, 'toplvl', 3, pres_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+ 
+     dim = (/lon_dimid, lat_dimid, time_dimid/)
+     dim2 = (/lon_dimid, lat_dimid, hist_dimid, time_dimid/)
+     dim3 = (/lon_dimid, lat_dimid, hist2_dimid, time_dimid/)
+     dim4 = (/lon_dimid, lat_dimid, hist3_dimid, time_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+   call check(nf90_def_var(nc_id, 'toplvl', NF90_FLOAT,pres_dimid,pres_varid))
+   call check(nf90_put_att(nc_id, pres_varid,'lon_name','Top Altitude Level'))
+    call check(nf90_put_att(nc_id, pres_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, pres_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, pres_varid, 'axis','Z'))   
+
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+	
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, pres_varid, toplvl))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_mapnc2
+!----------------------------------------------------------------------------!
+
+
+
+
+!----------------------------------------------------------------------------!
+! *** MAP_RECVAR2NC *** This routine record the map variables in the netcdf  !
+!                       prof file                                            !
+!----------------------------------------------------------------------------!
+! fname      : name of output netcdf MaPLowMidHigh file                      !
+! nlon       : number of the longitude boxes                                 !
+! nlat       : number of the latitude boxes                                  !
+! dim        : dimension id of the isccp variables                           !
+! low        : isccp low cloud flag                                          !
+! mid        : isccp mid cloud flag                                          !
+! high       : isccp high cloud flag                                         !
+! colcloud   : isccp column cloud flag                                       !
+! colclear   : isccp column clear flag                                       !
+!----------------------------------------------------------------------------!
+! nan        : Not a Number value                                            !
+! ndims      : dimension of dim (= 3 : lon,lat,time)                         !
+! ncid       : netcdf file id                                                !
+! varid1     : variable id of cloud fraction                                 !
+! varid2     : variable id of clear fraction                                 !
+! varid3     : variable id of fully attenuated fraction                      !
+! varid4     : variable id of unclassify fraction                            !
+! varid5     : variable id of nan fraction                                   !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : map_recvar2nc(monthisccplow,monthisccpmid,monthisccphigh,monthcolcloud!
+!                    monthcolclear,dimidsm,file8,lonmax,latmax)              !
+!                                                                            !
+!----------------------------------------------------------------------------!
+subroutine map_recvar2nc2(low,mid,high,colcloud,colclear, &
+                         dim,fname,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3
+    real,parameter  ::  nan=-9999
+    integer  ::  nlon , nlat ,dim(ndims)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat)  ::  low, mid, high
+    real*4,dimension(nlon,nlat)  ::  colcloud, colclear
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+  
+    call check(nf90_def_var(ncid, 'cllcalipso', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid1, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clmcalipso', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid2, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clhcalipso', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltcalipso', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clccalipso', NF90_FLOAT, dim, varid5))
+    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+               'CALIPSO Total Clear Fraction'))
+    call check(nf90_put_att(ncid, varid5, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+
+ 
+    call check(nf90_enddef(ncid))
+
+
+    call check(nf90_put_var(ncid, varid1, low))
+    call check(nf90_put_var(ncid, varid2, mid))
+    call check(nf90_put_var(ncid, varid3, high))
+    call check(nf90_put_var(ncid, varid4, colcloud))
+    call check(nf90_put_var(ncid, varid5, colclear))
+
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc2
+!----------------------------------------------------------------------------!
+
+subroutine create_maphighnc(fname,dname,vlon,vlat,vtime,dim,grid,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5,grid*8
+    integer, parameter ::  ndims = 3
+    integer,dimension(8)  ::  value
+    integer  ::  nlon , nlat,dim(ndims)
+    integer  ::  lon_varid,lat_varid,pres_varid, time_varid,nc_id
+    integer  ::  lon_dimid,lat_dimid,pres_dimid,time_dimid
+	real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+
+
+  
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Map_High_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105')) 
+    call check(nf90_def_dim(nc_id, 'lon', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'lat', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+ 
+     dim = (/lon_dimid, lat_dimid, time_dimid/)
+
+    call check(nf90_def_var(nc_id, 'lon', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'lat', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+     call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+	
+    call check(nf90_enddef(nc_id))
+
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+
+    call check(nf90_close(nc_id))
+
+end subroutine create_maphighnc
+!----------------------------------------------------------------------------!
+
+
+subroutine maphigh(high,top,base,dim,fname,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3
+    real,parameter  ::  nan=-9999
+    integer  ::  nlon , nlat ,dim(ndims)
+    integer  ::  varid3,varid5, varid6, ncid !
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat)  ::  high,top,base
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'clhcalipso', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'topcalipso', NF90_FLOAT, dim, varid5))
+    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+               'CALIPSO Top Cloud Height'))
+    call check(nf90_put_att(ncid, varid5, 'units','Kilometer'))
+    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+ 
+    call check(nf90_def_var(ncid, 'bascalipso', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO Base Cloud Height'))
+    call check(nf90_put_att(ncid, varid6, 'units','Kilometer'))
+    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+ 
+    call check(nf90_enddef(ncid))
+
+
+    call check(nf90_put_var(ncid, varid3, high))
+    call check(nf90_put_var(ncid, varid5, top))
+    call check(nf90_put_var(ncid, varid6, base))
+
+    call check(nf90_close(ncid))
+
+endsubroutine maphigh
+
+
+! call map_recvar2nc2phase(monthisccpliq,monthisccpice,monthisccpho,monthisccpun,monthisccpdust, &
+!                          isccpdaypermonthlow,isccpdaypermonthmid,isccpdaypermonth,dimidsm,     &
+!                          file8,lonmax-1,latmax-1)
+
+subroutine map_recvar2nc2phase(liq,ice,dim,fname,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3
+    real,parameter  ::  nan=-9999
+    integer  ::  nlon , nlat ,dim(ndims)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat,4)  ::  liq,ice
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+  
+    call check(nf90_def_var(ncid, 'cll_liq', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid1, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clm_liq', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid2, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clh_liq', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clt_liq', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+   call check(nf90_def_var(ncid, 'cll_ice', NF90_FLOAT, dim, varid5))
+    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid5, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clm_ice', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid6, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clh_ice', NF90_FLOAT, dim, varid7))
+    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid7, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clt_ice', NF90_FLOAT, dim, varid8))
+    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid8, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+
+
+    call check(nf90_enddef(ncid))
+
+
+    call check(nf90_put_var(ncid, varid1, liq(:,:,1)))
+    call check(nf90_put_var(ncid, varid2, liq(:,:,2)))
+    call check(nf90_put_var(ncid, varid3, liq(:,:,3)))
+    call check(nf90_put_var(ncid, varid4, liq(:,:,4)))
+
+    call check(nf90_put_var(ncid, varid5, ice(:,:,1)))
+    call check(nf90_put_var(ncid, varid6, ice(:,:,2)))
+    call check(nf90_put_var(ncid, varid7, ice(:,:,3)))
+    call check(nf90_put_var(ncid, varid8, ice(:,:,4)))
+
+
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc2phase
+!----------------------------------------------------------------------------!
+
+subroutine map_recvar2nc2phaseocc(liq,ice,indlow,indmid,indtot,dim,fname,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3
+    real,parameter  ::  nan=-9999
+    integer  ::  nlon , nlat ,dim(ndims)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10,varid11
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat,4)  ::  liq,ice
+    real*4,dimension(nlon,nlat)  ::  indtot,indlow,indmid
+
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+  
+    call check(nf90_def_var(ncid, 'cll_liq', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid1, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clm_liq', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid2, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clh_liq', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clt_liq', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+   call check(nf90_def_var(ncid, 'cll_ice', NF90_FLOAT, dim, varid5))
+    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid5, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clm_ice', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid6, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clh_ice', NF90_FLOAT, dim, varid7))
+    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid7, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clt_ice', NF90_FLOAT, dim, varid8))
+    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid8, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'ind_low', NF90_FLOAT, dim, varid9))
+    call check(nf90_put_att(ncid, varid9, 'lon_name',                        &
+               'indice low'))
+    call check(nf90_put_att(ncid, varid9, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid9, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'ind_mid', NF90_FLOAT, dim, varid10))
+    call check(nf90_put_att(ncid, varid10, 'lon_name',                        &
+               'indice mid'))
+    call check(nf90_put_att(ncid, varid10, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid10, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'ind_tot', NF90_FLOAT, dim, varid11))
+    call check(nf90_put_att(ncid, varid11, 'lon_name',                        &
+               'indice high/tot'))
+    call check(nf90_put_att(ncid, varid11, 'units','Occurrence'))
+    call check(nf90_put_att(ncid, varid11, '_FillValue',nan))
+
+    call check(nf90_enddef(ncid))
+
+
+    call check(nf90_put_var(ncid, varid1, liq(:,:,1)))
+    call check(nf90_put_var(ncid, varid2, liq(:,:,2)))
+    call check(nf90_put_var(ncid, varid3, liq(:,:,3)))
+    call check(nf90_put_var(ncid, varid4, liq(:,:,4)))
+
+    call check(nf90_put_var(ncid, varid5, ice(:,:,1)))
+    call check(nf90_put_var(ncid, varid6, ice(:,:,2)))
+    call check(nf90_put_var(ncid, varid7, ice(:,:,3)))
+    call check(nf90_put_var(ncid, varid8, ice(:,:,4)))
+
+    call check(nf90_put_var(ncid, varid9, indlow(:,:)))
+    call check(nf90_put_var(ncid, varid10, indmid(:,:)))
+    call check(nf90_put_var(ncid, varid11, indtot(:,:)))
+
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc2phaseocc
+!----------------------------------------------------------------------------!
+
+
+subroutine map_recvar2nc2phaseocc2(liq,ice,un2,phase,dim,dim2,fname,nlon,nlat)
+
+!call map_recvar2nc2phaseocc2(monthisccpho,monthisccpun,monthisccpdust,isccpdaypermonthlow, &
+!                             isccpdaypermonthmid,isccpdaypermonth,dimidsm,     &
+!                             file8,lonmax-1,latmax-1)
+!
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3, ndims2=4
+    real,parameter  ::  nan=-9999.
+    integer  ::  nlon , nlat ,dim(ndims),dim2(ndims2)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid21,varid22,varid23,varid24,varid25, varid26,varid27, varid28
+    integer  ::  varid8,varid9,varid10,varid11, varid12,varid13,varid14,varid15,varid16
+    character(LEN=*)  ::  fname
+    real*4,dimension(nlon,nlat,4)  ::  ice,liq,phase
+    real*4,dimension(nlon,nlat,4,catmax)  ::  un2
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+ 
+    call check(nf90_def_var(ncid, 'cllcalipso_liq', NF90_FLOAT, dim, varid21))
+    call check(nf90_put_att(ncid, varid21, 'lon_name',                        &
+               'Low Level liquid Cloud'))
+    call check(nf90_put_att(ncid, varid21, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid21, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clmcalipso_liq', NF90_FLOAT, dim, varid22))
+    call check(nf90_put_att(ncid, varid22, 'lon_name',                        &
+               'Middle Level liq Cloud'))
+    call check(nf90_put_att(ncid, varid22, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid22, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clhcalipso_liq', NF90_FLOAT, dim, varid23))
+    call check(nf90_put_att(ncid, varid23, 'lon_name',                        &
+               'High Level liq Cloud'))
+    call check(nf90_put_att(ncid, varid23, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid23, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltcalipso_liq', NF90_FLOAT, dim, varid24))
+    call check(nf90_put_att(ncid, varid24, 'lon_name',                        &
+               'Total Column Level liq Cloud'))
+    call check(nf90_put_att(ncid, varid24, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid24, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cllcalipso_ice', NF90_FLOAT, dim, varid25))
+    call check(nf90_put_att(ncid, varid25, 'lon_name',                        &
+               'Low-level ice Cloud'))
+    call check(nf90_put_att(ncid, varid25, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid25, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clmcalipso_ice', NF90_FLOAT, dim, varid26))
+    call check(nf90_put_att(ncid, varid26, 'lon_name',                        &
+               'CALIPSO Mid-level ice Cloud'))
+    call check(nf90_put_att(ncid, varid26, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid26, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clhcalipso_ice', NF90_FLOAT, dim, varid27))
+    call check(nf90_put_att(ncid, varid27, 'lon_name',                        &
+               'CALIPSO High-level ice Cloud'))
+    call check(nf90_put_att(ncid, varid27, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid27, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltcalipso_ice', NF90_FLOAT, dim, varid28))
+    call check(nf90_put_att(ncid, varid28, 'lon_name',                        &
+               'CALIPSO Total ice Cloud'))
+    call check(nf90_put_att(ncid, varid28, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid28, '_FillValue',nan))
+
+
+
+ 
+    call check(nf90_def_var(ncid, 'cllcalipso_un', NF90_FLOAT, dim2, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'Low Level unclassified Cloud'))
+    call check(nf90_put_att(ncid, varid1, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clmcalipso_un', NF90_FLOAT, dim2, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'Middle Level unclassified Cloud'))
+    call check(nf90_put_att(ncid, varid2, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clhcalipso_un', NF90_FLOAT, dim2, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'High Level unclassified Cloud'))
+    call check(nf90_put_att(ncid, varid3, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltcalipso_un', NF90_FLOAT, dim2, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'Total Column Level unclassified Cloud'))
+    call check(nf90_put_att(ncid, varid4, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+!!$    call check(nf90_def_var(ncid, 'cll_ho', NF90_FLOAT, dim, varid5))
+!!$    call check(nf90_put_att(ncid, varid5, 'lon_name',                        &
+!!$               'Low-level HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid5, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid5, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'clm_ho', NF90_FLOAT, dim, varid6))
+!!$    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+!!$               'CALIPSO Mid-level HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid6, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'clh_ho', NF90_FLOAT, dim, varid7))
+!!$    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+!!$               'CALIPSO High-level HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid7, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'clt_ho', NF90_FLOAT, dim, varid8))
+!!$    call check(nf90_put_att(ncid, varid8, 'lon_name',                        &
+!!$               'CALIPSO Total HO Cloud'))
+!!$    call check(nf90_put_att(ncid, varid8, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid8, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'cll_dust', NF90_FLOAT, dim, varid12))
+!!$    call check(nf90_put_att(ncid, varid12, 'lon_name',                        &
+!!$               'CALIPSO Low-level dust Cloud'))
+!!$    call check(nf90_put_att(ncid, varid12, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid12, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cllcalipso_RPIC', NF90_FLOAT, dim, varid13))
+    call check(nf90_put_att(ncid, varid13, 'lon_name',                        &
+               'CALIPSO Low-level Relative Percentage of Ice in Cloud'))
+    call check(nf90_put_att(ncid, varid13, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid13, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clmcalipso_RPIC', NF90_FLOAT, dim, varid14))
+    call check(nf90_put_att(ncid, varid14, 'lon_name',                        &
+               'CALIPSO Mid-level Relative Percentage of Ice in Cloud'))
+    call check(nf90_put_att(ncid, varid14, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid14, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'clhcalipso_RPIC', NF90_FLOAT, dim, varid15))
+    call check(nf90_put_att(ncid, varid15, 'lon_name',                        &
+               'CALIPSO High-level Relative Percentage of Ice in Cloud'))
+    call check(nf90_put_att(ncid, varid15, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid15, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'cltcalipso_RPIC', NF90_FLOAT, dim, varid16))
+    call check(nf90_put_att(ncid, varid16, 'lon_name',                        &
+               'CALIPSO Total Relative Percentage of Ice in Cloud'))
+    call check(nf90_put_att(ncid, varid16, 'units','Fraction'))
+    call check(nf90_put_att(ncid, varid16, '_FillValue',nan))
+
+
+
+!!$    call check(nf90_def_var(ncid, 'ind_low', NF90_FLOAT, dim, varid9))
+!!$    call check(nf90_put_att(ncid, varid9, 'lon_name',                        &
+!!$               'indice low'))
+!!$    call check(nf90_put_att(ncid, varid9, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid9, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'ind_mid', NF90_FLOAT, dim, varid10))
+!!$    call check(nf90_put_att(ncid, varid10, 'lon_name',                        &
+!!$               'indice mid'))
+!!$    call check(nf90_put_att(ncid, varid10, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid10, '_FillValue',nan))
+!!$
+!!$    call check(nf90_def_var(ncid, 'ind_tot', NF90_FLOAT, dim, varid11))
+!!$    call check(nf90_put_att(ncid, varid11, 'lon_name',                        &
+!!$               'indice high/tot'))
+!!$    call check(nf90_put_att(ncid, varid11, 'units','Fraction'))
+!!$    call check(nf90_put_att(ncid, varid11, '_FillValue',nan))
+    call check(nf90_enddef(ncid))
+
+
+
+
+    call check(nf90_put_var(ncid, varid21, liq(:,:,1)))
+    call check(nf90_put_var(ncid, varid22, liq(:,:,2)))
+    call check(nf90_put_var(ncid, varid23, liq(:,:,3)))
+    call check(nf90_put_var(ncid, varid24, liq(:,:,4)))
+
+    call check(nf90_put_var(ncid, varid25, ice(:,:,1)))
+    call check(nf90_put_var(ncid, varid26, ice(:,:,2)))
+    call check(nf90_put_var(ncid, varid27, ice(:,:,3)))
+    call check(nf90_put_var(ncid, varid28, ice(:,:,4)))
+
+    call check(nf90_put_var(ncid, varid1, un2(:,:,1,:)))
+    call check(nf90_put_var(ncid, varid2, un2(:,:,2,:)))
+    call check(nf90_put_var(ncid, varid3, un2(:,:,3,:)))
+    call check(nf90_put_var(ncid, varid4, un2(:,:,4,:)))
+
+    call check(nf90_put_var(ncid, varid13, phase(:,:,1)))
+    call check(nf90_put_var(ncid, varid14, phase(:,:,2)))
+    call check(nf90_put_var(ncid, varid15, phase(:,:,3)))
+    call check(nf90_put_var(ncid, varid16, phase(:,:,4)))
+
+ 
+
+!    call check(nf90_put_var(ncid, varid9, indlow(:,:)))
+!    call check(nf90_put_var(ncid, varid10, indmid(:,:)))
+!    call check(nf90_put_var(ncid, varid11, indtot(:,:)))
+
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc2phaseocc2
+!----------------------------------------------------------------------------!
+
+
+subroutine map_recvar2nc3(low,mid,high,colcloud,colclear,height,indtot,&
+                         hlow,hmid,hhigh,hcol,hheight,dim,dim2,dim3,fname,nlon,nlat)
+
+! h_CA utile car 31 valeur au max...
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3,histmax=10,histmax2=40,ndims2=4
+    real,parameter  ::  nan=-999
+    integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
+    integer  ::  varid15,varid16,varid17
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat)  ::  low, mid, high
+    real*4,dimension(nlon,nlat)  ::  colcloud, colclear, height
+    integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
+    integer,dimension(nlon,nlat,histmax)  ::  hlow,hmid,hhigh,hcol
+    real*4,dimension(nlon,nlat,histmax2)  ::  hheight    
+    integer,dimension(histmax2)  ::  histmod2
+    real,dimension(histmax)  ::  histmod
+
+
+histmod(:)=0;
+do ihist=1,histmax
+   histmod(ihist+1)=histmod(ihist)+0.1
+enddo
+
+histmod2(:)=0;
+do ihist=1,histmax2
+   histmod2(ihist+1)=histmod2(ihist)+1
+enddo
+
+
+!print *, tot(5,5),ret(5,5)
+
+do ilon=1,nlon
+  do ilat=1,nlat
+
+if (colcloud(ilon,ilat).eq.0)then
+f_CA(ilon,ilat)=0
+elseif(colcloud(ilon,ilat).eq.-999)then
+f_CA(ilon,ilat)=-999
+else
+f_CA(ilon,ilat)=100
+endif
+
+if (low(ilon,ilat).eq.0)then
+f_CAL(ilon,ilat)=0
+elseif(low(ilon,ilat).eq.-999)then
+f_CAL(ilon,ilat)=-999
+else
+f_CAL(ilon,ilat)=100
+endif
+
+if (mid(ilon,ilat).eq.0)then
+f_CAM(ilon,ilat)=0
+elseif(mid(ilon,ilat).eq.-999)then
+f_CAM(ilon,ilat)=-999
+else
+f_CAM(ilon,ilat)=100
+endif
+
+if (high(ilon,ilat).eq.0)then
+f_CAH(ilon,ilat)=0
+elseif(high(ilon,ilat).eq.-999)then
+f_CAH(ilon,ilat)=-999
+else
+f_CAH(ilon,ilat)=100
+endif
+
+if (height(ilon,ilat).eq.0)then
+f_CZ(ilon,ilat)=0
+elseif(height(ilon,ilat).eq.-999)then
+f_CZ(ilon,ilat)=-999
+else
+f_CZ(ilon,ilat)=100
+endif
+
+
+enddo
+enddo
+
+!!$do ilon=1,nlon
+!!$  do ilat=1,nlat
+!!$     do ihist=1,ihistmax-1
+!!$
+!!$        if(h_CA(ilon,ilat,ihist)
+!!$enddo
+!!$enddo
+!!$enddo
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'n_tot', NF90_INT4, dim, varid7))
+    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+               'Number of orbit passages'))
+    call check(nf90_put_att(ncid, varid7, 'units','Arbitrary Unit'))
+    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+
+
+    call check(nf90_def_var(ncid, 'a_CAL', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid1, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CAM', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid2, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CAH', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CA', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CZ', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO Cloud Top Height level'))
+    call check(nf90_put_att(ncid, varid6, 'units','1-40'))
+    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+ 
+    call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
+    call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
+    call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
+    call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
+    call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
+
+    call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
+    call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
+    call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
+    call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
+    call check(nf90_def_var(ncid, 'h_CZ', NF90_FLOAT, dim3, varid17))
+
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid1, low))
+    call check(nf90_put_var(ncid, varid2, mid))
+    call check(nf90_put_var(ncid, varid3, high))
+    call check(nf90_put_var(ncid, varid4, colcloud))
+ !   call check(nf90_put_var(ncid, varid5, colclear))
+    call check(nf90_put_var(ncid, varid6, height)) 
+    call check(nf90_put_var(ncid, varid7, indtot)) 
+    call check(nf90_put_var(ncid, varid8, f_CAL)) 
+ call check(nf90_put_var(ncid, varid9, f_CAM)) 
+ call check(nf90_put_var(ncid, varid10, f_CAH)) 
+ call check(nf90_put_var(ncid, varid11, f_CA)) 
+ call check(nf90_put_var(ncid, varid12, f_CZ))
+ call check(nf90_put_var(ncid, varid13, hlow ))
+ call check(nf90_put_var(ncid, varid14, hmid )) 
+ call check(nf90_put_var(ncid, varid15, hhigh)) 
+ call check(nf90_put_var(ncid, varid16, hcol)) 
+ call check(nf90_put_var(ncid, varid17, hheight))
+ 
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc3
+!----------------------------------------------------------------------------!
+
+subroutine map_recvar2nc7(low,mid,high,colcloud,height,indtot,&
+                         hlow,hmid,hhigh,hcol,hheight,dim,dim2,dim3,dim4,fname,nlon,nlat, &
+                         lowtemp,midtemp,hightemp,coltemp,hlowtemp,hmidtemp,hhightemp, &
+                         hcoltemp)
+! h_CA utile car 31 v!aleur au max...
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3,histmax=10,histmax2=40,ndims2=4, histmax3=28
+    real,parameter  ::  nan=-999
+    integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2),dim4(ndims2)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
+    integer  ::  varid15,varid16,varid17
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat)  ::  low, mid, high
+    real*4,dimension(nlon,nlat)  ::  colcloud, height
+    integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
+    integer,dimension(nlon,nlat)  ::  f_CT,f_CTL,f_CTM,f_CTH
+
+    integer,dimension(nlon,nlat,histmax)  ::  hlow,hmid,hhigh,hcol
+    real*4,dimension(nlon,nlat,histmax2)  ::  hheight    
+    integer,dimension(histmax2)  ::  histmod2
+    real,dimension(histmax)  ::  histmod
+    integer,dimension(nlon,nlat,histmax3)  ::  hlowtemp,hmidtemp,hhightemp,hcoltemp
+
+    real*4,dimension(nlon,nlat)  ::  lowtemp,midtemp,hightemp,coltemp
+    integer  ::  varid27, varid28, varid29, varid30, varid18, varid19, varid20, varid21
+    integer  ::  varid31, varid32, varid33, varid34
+
+
+histmod(:)=0;
+do ihist=1,histmax
+   histmod(ihist+1)=histmod(ihist)+0.1
+enddo
+
+histmod2(:)=0;
+do ihist=1,histmax2
+   histmod2(ihist+1)=histmod2(ihist)+1
+enddo
+
+
+do ilon=1,nlon
+  do ilat=1,nlat
+
+if (colcloud(ilon,ilat).eq.0)then
+f_CA(ilon,ilat)=0
+elseif(colcloud(ilon,ilat).eq.-999)then
+f_CA(ilon,ilat)=-999
+else
+f_CA(ilon,ilat)=100
+endif
+
+if (low(ilon,ilat).eq.0)then
+f_CAL(ilon,ilat)=0
+elseif(low(ilon,ilat).eq.-999)then
+f_CAL(ilon,ilat)=-999
+else
+f_CAL(ilon,ilat)=100
+endif
+
+if (mid(ilon,ilat).eq.0)then
+f_CAM(ilon,ilat)=0
+elseif(mid(ilon,ilat).eq.-999)then
+f_CAM(ilon,ilat)=-999
+else
+f_CAM(ilon,ilat)=100
+endif
+
+if (high(ilon,ilat).eq.0)then
+f_CAH(ilon,ilat)=0
+elseif(high(ilon,ilat).eq.-999)then
+f_CAH(ilon,ilat)=-999
+else
+f_CAH(ilon,ilat)=100
+endif
+
+if (height(ilon,ilat).eq.0)then
+f_CZ(ilon,ilat)=0
+elseif(height(ilon,ilat).eq.-999)then
+f_CZ(ilon,ilat)=-999
+else
+f_CZ(ilon,ilat)=100
+endif
+
+if (lowtemp(ilon,ilat).gt.0)then
+f_CTL(ilon,ilat)=100
+else
+f_CTL(ilon,ilat)=0
+endif
+
+if (midtemp(ilon,ilat).gt.0)then
+f_CTM(ilon,ilat)=100
+else
+f_CTM(ilon,ilat)=0
+endif
+
+if (hightemp(ilon,ilat).gt.0)then
+f_CTH(ilon,ilat)=100
+else
+f_CTH(ilon,ilat)=0
+endif
+
+
+if (coltemp(ilon,ilat).gt.0)then
+f_CT(ilon,ilat)=100
+else
+f_CT(ilon,ilat)=0
+endif
+
+enddo
+enddo
+
+!!$do ilon=1,nlon
+!!$  do ilat=1,nlat
+!!$     do ihist=1,ihistmax-1
+!!$
+!!$        if(h_CA(ilon,ilat,ihist)
+!!$enddo
+!!$enddo
+!!$enddo
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'n_tot', NF90_INT4, dim, varid7))
+    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+               'Number of orbit passages'))
+    call check(nf90_put_att(ncid, varid7, 'units','Arbitrary Unit'))
+    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+
+
+    call check(nf90_def_var(ncid, 'a_CAL', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid1, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CAM', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid2, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CAH', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CA', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CZ', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO Cloud Top Height level'))
+    call check(nf90_put_att(ncid, varid6, 'units','1-40'))
+    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+ 
+    call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
+    call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
+    call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
+    call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
+    call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
+
+    call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
+    call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
+    call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
+    call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
+    call check(nf90_def_var(ncid, 'h_CZ', NF90_FLOAT, dim3, varid17))
+
+    call check(nf90_def_var(ncid, 'a_CTL', NF90_FLOAT, dim, varid27))
+    call check(nf90_def_var(ncid, 'a_CTM', NF90_FLOAT, dim, varid28))
+    call check(nf90_def_var(ncid, 'a_CTH', NF90_FLOAT, dim, varid29))
+    call check(nf90_def_var(ncid, 'a_CT', NF90_FLOAT, dim, varid30))
+
+    call check(nf90_def_var(ncid, 'f_CTL', NF90_INT4, dim, varid18))
+    call check(nf90_def_var(ncid, 'f_CTM', NF90_INT4, dim, varid19))
+    call check(nf90_def_var(ncid, 'f_CTH', NF90_INT4, dim, varid20))
+    call check(nf90_def_var(ncid, 'f_CT', NF90_INT4, dim, varid21))
+
+    call check(nf90_def_var(ncid, 'h_CTL', NF90_INT4, dim4, varid31))
+    call check(nf90_def_var(ncid, 'h_CTM', NF90_INT4, dim4, varid32))
+    call check(nf90_def_var(ncid, 'h_CTH', NF90_INT4, dim4, varid33))
+    call check(nf90_def_var(ncid, 'h_CT', NF90_INT4, dim4, varid34))
+
+
+    call check(nf90_enddef(ncid))
+
+  
+    call check(nf90_put_var(ncid, varid1, low))
+    call check(nf90_put_var(ncid, varid2, mid))
+    call check(nf90_put_var(ncid, varid3, high))
+    call check(nf90_put_var(ncid, varid4, colcloud))
+    call check(nf90_put_var(ncid, varid6, height)) 
+    call check(nf90_put_var(ncid, varid7, indtot)) 
+    call check(nf90_put_var(ncid, varid8, f_CAL)) 
+    call check(nf90_put_var(ncid, varid9, f_CAM)) 
+    call check(nf90_put_var(ncid, varid10, f_CAH)) 
+    call check(nf90_put_var(ncid, varid11, f_CA)) 
+    call check(nf90_put_var(ncid, varid12, f_CZ))
+    call check(nf90_put_var(ncid, varid13, hlow ))
+    call check(nf90_put_var(ncid, varid14, hmid )) 
+    call check(nf90_put_var(ncid, varid15, hhigh)) 
+    call check(nf90_put_var(ncid, varid16, hcol)) 
+    call check(nf90_put_var(ncid, varid17, hheight))
+    call check(nf90_put_var(ncid, varid18, f_CTL)) 
+    call check(nf90_put_var(ncid, varid19, f_CTM)) 
+    call check(nf90_put_var(ncid, varid20, f_CTH)) 
+    call check(nf90_put_var(ncid, varid21, f_CT)) 
+    call check(nf90_put_var(ncid, varid27, lowtemp))
+    call check(nf90_put_var(ncid, varid28, midtemp))
+    call check(nf90_put_var(ncid, varid29, hightemp))
+    call check(nf90_put_var(ncid, varid30, coltemp))
+    call check(nf90_put_var(ncid, varid31, hlowtemp))
+    call check(nf90_put_var(ncid, varid32, hmidtemp))
+    call check(nf90_put_var(ncid, varid33, hhightemp))
+    call check(nf90_put_var(ncid, varid34, hcoltemp))
+
+ 
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc7
+
+
+
+subroutine map_recvar2nc6(low,mid,high,colcloud,height,indtot,&
+                         hlow,hmid,hhigh,hcol,hheight,dim,dim2,dim3,fname,nlon,nlat)!,&
+!                         lowtemp,midtemp! &
+!                         hightemp,coltemp,hlowtemp,hmidtemp,hhightemp, &
+!                         hcoltemp,dim4)
+
+! h_CA utile car 31 valeur au max...
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3,histmax=10,histmax2=40,ndims2=4,histmax3=28
+    real,parameter  ::  nan=-999
+    integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2),dim4(ndims2)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
+    integer  ::  varid15,varid16,varid17
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat)  ::  low, mid, high
+    real*4,dimension(nlon,nlat)  ::  colcloud, height
+    integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
+    integer,dimension(nlon,nlat,histmax)  ::  hlow,hmid,hhigh,hcol
+    integer,dimension(nlon,nlat,histmax2)  ::  hheight    
+    integer,dimension(histmax2)  ::  histmod2
+    real,dimension(histmax)  ::  histmod
+
+   
+    real*4,dimension(nlon,nlat)  ::  lowtemp,midtemp,hightemp,coltemp
+    integer,dimension(nlon,nlat)  ::  f_CT,f_CTL,f_CTM,f_CTH
+    integer,dimension(nlon,nlat,histmax3)  ::  hlowtemp,hmidtemp,hhightemp,hcoltemp
+    integer,dimension(histmax3)  ::  histmod3
+
+
+
+
+
+histmod(:)=0;
+do ihist=1,histmax
+   histmod(ihist+1)=histmod(ihist)+0.1
+enddo
+
+histmod2(:)=0;
+do ihist=1,histmax2
+   histmod2(ihist+1)=histmod2(ihist)+1
+enddo
+
+
+!print *, tot(5,5),ret(5,5)
+
+do ilon=1,nlon
+  do ilat=1,nlat
+
+if (colcloud(ilon,ilat).eq.0)then
+f_CA(ilon,ilat)=0
+elseif(colcloud(ilon,ilat).eq.-999)then
+f_CA(ilon,ilat)=-999
+else
+f_CA(ilon,ilat)=100
+endif
+
+if (low(ilon,ilat).eq.0)then
+f_CAL(ilon,ilat)=0
+elseif(low(ilon,ilat).eq.-999)then
+f_CAL(ilon,ilat)=-999
+else
+f_CAL(ilon,ilat)=100
+endif
+
+if (mid(ilon,ilat).eq.0)then
+f_CAM(ilon,ilat)=0
+elseif(mid(ilon,ilat).eq.-999)then
+f_CAM(ilon,ilat)=-999
+else
+f_CAM(ilon,ilat)=100
+endif
+
+if (high(ilon,ilat).eq.0)then
+f_CAH(ilon,ilat)=0
+elseif(high(ilon,ilat).eq.-999)then
+f_CAH(ilon,ilat)=-999
+else
+f_CAH(ilon,ilat)=100
+endif
+
+if (height(ilon,ilat).eq.0)then
+f_CZ(ilon,ilat)=0
+elseif(height(ilon,ilat).eq.-999)then
+f_CZ(ilon,ilat)=-999
+else
+f_CZ(ilon,ilat)=100
+endif
+
+
+enddo
+enddo
+
+!!$do ilon=1,nlon
+!!$  do ilat=1,nlat
+!!$     do ihist=1,ihistmax-1
+!!$
+!!$        if(h_CA(ilon,ilat,ihist)
+!!$enddo
+!!$enddo
+!!$enddo
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'n_tot', NF90_INT4, dim, varid7))
+    call check(nf90_put_att(ncid, varid7, 'lon_name',                        &
+               'Number of orbit passages'))
+    call check(nf90_put_att(ncid, varid7, 'units','Arbitrary Unit'))
+    call check(nf90_put_att(ncid, varid7, '_FillValue',nan))
+
+
+    call check(nf90_def_var(ncid, 'a_CAL', NF90_FLOAT, dim, varid1))
+    call check(nf90_put_att(ncid, varid1, 'lon_name',                        &
+               'CALIPSO Low-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid1, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid1, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CAM', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                        &
+               'CALIPSO Mid-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid2, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CAH', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                        &
+               'CALIPSO High-level Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid3, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CA', NF90_FLOAT, dim, varid4))
+    call check(nf90_put_att(ncid, varid4, 'lon_name',                        &
+               'CALIPSO Total Cloud Fraction'))
+    call check(nf90_put_att(ncid, varid4, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid4, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'a_CZ', NF90_FLOAT, dim, varid6))
+    call check(nf90_put_att(ncid, varid6, 'lon_name',                        &
+               'CALIPSO Cloud Top Height level'))
+    call check(nf90_put_att(ncid, varid6, 'units','1-40'))
+    call check(nf90_put_att(ncid, varid6, '_FillValue',nan))
+ 
+call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
+call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
+call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
+call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
+call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
+
+call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
+call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
+call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
+call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
+call check(nf90_def_var(ncid, 'h_CZ', NF90_INT4, dim3, varid17))
+
+    call check(nf90_enddef(ncid))
+
+    call check(nf90_put_var(ncid, varid1, low))
+    call check(nf90_put_var(ncid, varid2, mid))
+    call check(nf90_put_var(ncid, varid3, high))
+    call check(nf90_put_var(ncid, varid4, colcloud))
+    call check(nf90_put_var(ncid, varid6, height)) 
+    call check(nf90_put_var(ncid, varid7, indtot)) 
+    call check(nf90_put_var(ncid, varid8, f_CAL)) 
+ call check(nf90_put_var(ncid, varid9, f_CAM)) 
+ call check(nf90_put_var(ncid, varid10, f_CAH)) 
+ call check(nf90_put_var(ncid, varid11, f_CA)) 
+ call check(nf90_put_var(ncid, varid12, f_CZ))
+ call check(nf90_put_var(ncid, varid13, hlow ))
+ call check(nf90_put_var(ncid, varid14, hmid )) 
+ call check(nf90_put_var(ncid, varid15, hhigh)) 
+ call check(nf90_put_var(ncid, varid16, hcol)) 
+ call check(nf90_put_var(ncid, varid17, hheight))
+ 
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc6
+!----------------------------------------------------------------------------!
+
+
+
+
+
+
+
+
+
+
+
+subroutine map_recvar2nc4(low,mid,high,colcloud,colclear,height,indtot,&
+                         hlow,hmid,hhigh,hcol,hheight,lowtemp,midtemp, &
+                         hightemp,coltemp,hlowtemp,hmidtemp,hhightemp, &
+                         hcoltemp,dim,dim2,dim3,dim4,fname,nlon,nlat)
+
+! h_CA utile car 31 valeur au max...
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3,histmax=10,histmax2=40,ndims2=4,histmax3=28
+    real,parameter  ::  nan=-999
+    integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2),dim4(ndims2)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
+    integer  ::  varid15,varid16,varid17,varid18,varid19,varid20,varid21,varid22,varid23,varid24,varid25,varid26,varid27,varid28,varid29,varid30
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat)  ::  low, mid, high
+    real*4,dimension(nlon,nlat)  ::  colcloud, colclear, height
+    real*4,dimension(nlon,nlat)  ::  lowtemp,midtemp,hightemp,coltemp
+
+    integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
+    integer,dimension(nlon,nlat)  ::  f_CT,f_CTL,f_CTM,f_CTH
+    integer,dimension(nlon,nlat,histmax)  ::  hlow,hmid,hhigh,hcol
+    integer,dimension(nlon,nlat,histmax2)  ::  hheight   
+    integer,dimension(nlon,nlat,histmax3)  ::  hlowtemp,hmidtemp,hhightemp,hcoltemp
+
+    integer,dimension(histmax2)  ::  histmod2
+    real,dimension(histmax)  ::  histmod
+    integer,dimension(histmax3)  ::  histmod3
+
+
+histmod(:)=0;
+do ihist=1,histmax
+   histmod(ihist+1)=histmod(ihist)+0.1
+enddo
+
+histmod2(:)=0;
+do ihist=1,histmax2
+   histmod2(ihist+1)=histmod2(ihist)+1
+enddo
+
+
+
+print *, 'f_ begin'
+
+!print *, tot(5,5),ret(5,5)
+
+do ilon=1,nlon
+  do ilat=1,nlat
+
+if (colcloud(ilon,ilat).eq.0)then
+f_CA(ilon,ilat)=0
+elseif(colcloud(ilon,ilat).eq.-999)then
+f_CA(ilon,ilat)=-999
+else
+f_CA(ilon,ilat)=100
+endif
+
+if (low(ilon,ilat).eq.0)then
+f_CAL(ilon,ilat)=0
+elseif(low(ilon,ilat).eq.-999)then
+f_CAL(ilon,ilat)=-999
+else
+f_CAL(ilon,ilat)=100
+endif
+
+if (mid(ilon,ilat).eq.0)then
+f_CAM(ilon,ilat)=0
+elseif(mid(ilon,ilat).eq.-999)then
+f_CAM(ilon,ilat)=-999
+else
+f_CAM(ilon,ilat)=100
+endif
+
+if (high(ilon,ilat).eq.0)then
+f_CAH(ilon,ilat)=0
+elseif(high(ilon,ilat).eq.-999)then
+f_CAH(ilon,ilat)=-999
+else
+f_CAH(ilon,ilat)=100
+endif
+
+if (height(ilon,ilat).eq.0)then
+f_CZ(ilon,ilat)=0
+elseif(height(ilon,ilat).eq.-999)then
+f_CZ(ilon,ilat)=-999
+else
+f_CZ(ilon,ilat)=100
+endif
+
+if (lowtemp(ilon,ilat).gt.0)then
+f_CTL(ilon,ilat)=100
+else
+f_CTL(ilon,ilat)=0
+endif
+
+if (midtemp(ilon,ilat).gt.0)then
+f_CTM(ilon,ilat)=100
+else
+f_CTM(ilon,ilat)=0
+endif
+
+if (hightemp(ilon,ilat).gt.0)then
+f_CTH(ilon,ilat)=100
+else
+f_CTH(ilon,ilat)=0
+endif
+
+
+if (coltemp(ilon,ilat).gt.0)then
+f_CT(ilon,ilat)=100
+else
+f_CT(ilon,ilat)=0
+endif
+
+
+enddo
+enddo
+
+print *, 'f_ ok'
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+     call check(nf90_def_var(ncid, 'a_CTL', NF90_FLOAT, dim, varid27))
+     call check(nf90_def_var(ncid, 'a_CTM', NF90_FLOAT, dim, varid28))
+     call check(nf90_def_var(ncid, 'a_CTH', NF90_FLOAT, dim, varid29))
+     call check(nf90_def_var(ncid, 'a_CT', NF90_FLOAT, dim, varid30))
+
+call check(nf90_def_var(ncid, 'f_CTL', NF90_INT4, dim, varid18))
+call check(nf90_def_var(ncid, 'f_CTM', NF90_INT4, dim, varid19))
+call check(nf90_def_var(ncid, 'f_CTH', NF90_INT4, dim, varid20))
+call check(nf90_def_var(ncid, 'f_CT', NF90_INT4, dim, varid21))
+
+call check(nf90_def_var(ncid, 'h_CTL', NF90_INT4, dim4, varid23))
+call check(nf90_def_var(ncid, 'h_CTM', NF90_INT4, dim4, varid24))
+call check(nf90_def_var(ncid, 'h_CTH', NF90_INT4, dim4, varid25))
+call check(nf90_def_var(ncid, 'h_CT', NF90_INT4, dim4, varid26))
+
+
+print *, 'def var ok'
+
+    call check(nf90_enddef(ncid))
+print *, 'f_ ok'
+
+ call check(nf90_put_var(ncid, varid18, f_CTL)) 
+ call check(nf90_put_var(ncid, varid19, f_CTM)) 
+ call check(nf90_put_var(ncid, varid20, f_CTH)) 
+ call check(nf90_put_var(ncid, varid21, f_CT)) 
+print *, 'f_ ok'
+
+ call check(nf90_put_var(ncid, varid23, hlowtemp ))
+ call check(nf90_put_var(ncid, varid24, hmidtemp )) 
+ call check(nf90_put_var(ncid, varid25, hhightemp)) 
+ call check(nf90_put_var(ncid, varid26, hcoltemp)) 
+print *, 'f_ ok'
+
+    call check(nf90_put_var(ncid, varid27, lowtemp))
+    call check(nf90_put_var(ncid, varid28, midtemp))
+    call check(nf90_put_var(ncid, varid29, hightemp))
+    call check(nf90_put_var(ncid, varid30, coltemp))
+
+
+
+print *, 'f_ ok'
+
+ 
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc4
+!----------------------------------------------------------------------------!
+
+
+subroutine map_recvar2nc5(low,mid,high,colcloud,height,indtot,&
+                         hlow,hmid,hhigh,hcol,hheight,lowtemp,midtemp, &
+                         hightemp,coltemp,hlowtemp,hmidtemp,hhightemp, &
+                         hcoltemp,dim,dim2,dim3,dim4,fname,nlon,nlat)
+
+! h_CA utile car 31 valeur au max...
+    use netcdf
+    implicit none
+
+    integer, parameter ::  ndims=3,histmax=10,histmax2=40,ndims2=4,histmax3=28
+    real,parameter  ::  nan=-999
+    integer  ::  nlon , nlat ,dim(ndims),ihist,dim2(ndims2),dim3(ndims2),dim4(ndims2)
+    integer  ::  varid1,varid2,varid3,varid4,varid5, varid6,varid7, ncid !
+    integer  ::  varid8,varid9,varid10,varid11,varid12,varid13,varid14
+    integer  ::  varid15,varid16,varid17
+    character(LEN=*)  ::  fname
+    !integer*4,dimension(nlon,nlat)  ::  tot,ret,retlow,retmid,rethigh
+    real*4,dimension(nlon,nlat)  ::  low, mid, high
+    real*4,dimension(nlon,nlat)  ::  colcloud, height
+    integer,dimension(nlon,nlat)  ::  indtot,f_CA,f_CAL,f_CAM,f_CAH,f_CZ
+    integer,dimension(nlon,nlat,histmax)  ::  hlow,hmid,hhigh,hcol
+    integer,dimension(nlon,nlat,histmax2)  ::  hheight    
+    integer,dimension(histmax2)  ::  histmod2
+    real,dimension(histmax)  ::  histmod
+
+    integer  ::  varid18,varid19,varid20,varid21,varid22,varid23,varid24,varid25,varid26,varid27,varid28,varid29,varid30
+
+    real*4,dimension(nlon,nlat)  ::  lowtemp,midtemp,hightemp,coltemp
+
+    integer,dimension(nlon,nlat)  ::  f_CT,f_CTL,f_CTM,f_CTH
+    integer,dimension(nlon,nlat,histmax3)  ::  hlowtemp,hmidtemp,hhightemp,hcoltemp
+
+histmod(:)=0;
+do ihist=1,histmax
+   histmod(ihist+1)=histmod(ihist)+0.1
+enddo
+
+histmod2(:)=0;
+do ihist=1,histmax2
+   histmod2(ihist+1)=histmod2(ihist)+1
+enddo
+
+
+!print *, tot(5,5),ret(5,5)
+
+do ilon=1,nlon
+  do ilat=1,nlat
+
+if (colcloud(ilon,ilat).eq.0)then
+f_CA(ilon,ilat)=0
+elseif(colcloud(ilon,ilat).eq.-999)then
+f_CA(ilon,ilat)=-999
+else
+f_CA(ilon,ilat)=100
+endif
+
+if (low(ilon,ilat).eq.0)then
+f_CAL(ilon,ilat)=0
+elseif(low(ilon,ilat).eq.-999)then
+f_CAL(ilon,ilat)=-999
+else
+f_CAL(ilon,ilat)=100
+endif
+
+if (mid(ilon,ilat).eq.0)then
+f_CAM(ilon,ilat)=0
+elseif(mid(ilon,ilat).eq.-999)then
+f_CAM(ilon,ilat)=-999
+else
+f_CAM(ilon,ilat)=100
+endif
+
+if (high(ilon,ilat).eq.0)then
+f_CAH(ilon,ilat)=0
+elseif(high(ilon,ilat).eq.-999)then
+f_CAH(ilon,ilat)=-999
+else
+f_CAH(ilon,ilat)=100
+endif
+
+if (height(ilon,ilat).eq.0)then
+f_CZ(ilon,ilat)=0
+elseif(height(ilon,ilat).eq.-999)then
+f_CZ(ilon,ilat)=-999
+else
+f_CZ(ilon,ilat)=100
+endif
+
+
+if (height(ilon,ilat).eq.0)then
+f_CZ(ilon,ilat)=0
+elseif(height(ilon,ilat).eq.-999)then
+f_CZ(ilon,ilat)=-999
+else
+f_CZ(ilon,ilat)=100
+endif
+
+if (lowtemp(ilon,ilat).gt.0)then
+f_CTL(ilon,ilat)=100
+else
+f_CTL(ilon,ilat)=0
+endif
+
+if (midtemp(ilon,ilat).gt.0)then
+f_CTM(ilon,ilat)=100
+else
+f_CTM(ilon,ilat)=0
+endif
+
+if (hightemp(ilon,ilat).gt.0)then
+f_CTH(ilon,ilat)=100
+else
+f_CTH(ilon,ilat)=0
+endif
+
+
+if (coltemp(ilon,ilat).gt.0)then
+f_CT(ilon,ilat)=100
+else
+f_CT(ilon,ilat)=0
+endif
+
+
+enddo
+enddo
+
+print *, 'creation fichier'
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'n_tot', NF90_INT4, dim, varid7))
+    call check(nf90_def_var(ncid, 'a_CAL', NF90_FLOAT, dim, varid1))
+    call check(nf90_def_var(ncid, 'a_CAM', NF90_FLOAT, dim, varid2))
+    call check(nf90_def_var(ncid, 'a_CAH', NF90_FLOAT, dim, varid3))
+    call check(nf90_def_var(ncid, 'a_CA', NF90_FLOAT, dim, varid4))
+    call check(nf90_def_var(ncid, 'a_CZ', NF90_FLOAT, dim, varid6))
+ 
+call check(nf90_def_var(ncid, 'f_CAL', NF90_INT4, dim, varid8))
+call check(nf90_def_var(ncid, 'f_CAM', NF90_INT4, dim, varid9))
+call check(nf90_def_var(ncid, 'f_CAH', NF90_INT4, dim, varid10))
+call check(nf90_def_var(ncid, 'f_CA', NF90_INT4, dim, varid11))
+call check(nf90_def_var(ncid, 'f_CZ', NF90_INT4, dim, varid12))
+
+call check(nf90_def_var(ncid, 'h_CAL', NF90_INT4, dim2, varid13))
+call check(nf90_def_var(ncid, 'h_CAM', NF90_INT4, dim2, varid14))
+call check(nf90_def_var(ncid, 'h_CAH', NF90_INT4, dim2, varid15))
+call check(nf90_def_var(ncid, 'h_CA', NF90_INT4, dim2, varid16))
+call check(nf90_def_var(ncid, 'h_CZ', NF90_INT4, dim3, varid17))
+
+
+!!$call check(nf90_def_var(ncid, 'f_CTL', NF90_INT4, dim, varid18))
+!!$call check(nf90_def_var(ncid, 'f_CTM', NF90_INT4, dim, varid19))
+!!$call check(nf90_def_var(ncid, 'f_CTH', NF90_INT4, dim, varid20))
+!!$call check(nf90_def_var(ncid, 'f_CT', NF90_INT4, dim, varid21))
+
+!!$call check(nf90_def_var(ncid, 'h_CTL', NF90_INT4, dim4, varid23))
+!!$call check(nf90_def_var(ncid, 'h_CTM', NF90_INT4, dim4, varid24))
+!!$call check(nf90_def_var(ncid, 'h_CTH', NF90_INT4, dim4, varid25))
+!!$call check(nf90_def_var(ncid, 'h_CT', NF90_INT4, dim4, varid26))
+!!$
+!!$call check(nf90_def_var(ncid, 'a_CTL', NF90_FLOAT, dim, varid27))
+!!$call check(nf90_def_var(ncid, 'a_CTM', NF90_FLOAT, dim, varid28))
+!!$call check(nf90_def_var(ncid, 'a_CTH', NF90_FLOAT, dim, varid29))
+!!$call check(nf90_def_var(ncid, 'a_CT', NF90_FLOAT, dim, varid30))
+
+
+    call check(nf90_enddef(ncid))
+print *, 'end def'
+
+    call check(nf90_put_var(ncid, varid1, low))
+    call check(nf90_put_var(ncid, varid2, mid))
+    call check(nf90_put_var(ncid, varid3, high))
+print *, 'file gewex1'
+
+    call check(nf90_put_var(ncid, varid4, colcloud))
+    call check(nf90_put_var(ncid, varid6, height)) 
+    call check(nf90_put_var(ncid, varid7, indtot)) 
+    call check(nf90_put_var(ncid, varid8, f_CAL)) 
+print *, 'file gewex1'
+
+ call check(nf90_put_var(ncid, varid9, f_CAM)) 
+ call check(nf90_put_var(ncid, varid10, f_CAH)) 
+ call check(nf90_put_var(ncid, varid11, f_CA)) 
+ call check(nf90_put_var(ncid, varid12, f_CZ))
+print *, 'file gewex1'
+
+ call check(nf90_put_var(ncid, varid13, hlow ))
+ call check(nf90_put_var(ncid, varid14, hmid )) 
+ call check(nf90_put_var(ncid, varid15, hhigh)) 
+ call check(nf90_put_var(ncid, varid16, hcol)) 
+print *, 'file gewex1'
+
+ call check(nf90_put_var(ncid, varid17, hheight))
+ 
+print *, 'file gewex1'
+
+
+!!$ call check(nf90_put_var(ncid, varid18, f_CTL)) 
+!!$ call check(nf90_put_var(ncid, varid19, f_CTM)) 
+!!$ call check(nf90_put_var(ncid, varid20, f_CTH)) 
+!!$ call check(nf90_put_var(ncid, varid21, f_CT)) 
+
+! call check(nf90_put_var(ncid, varid23, hlowtemp ))
+! call check(nf90_put_var(ncid, varid24, hmidtemp )) 
+! call check(nf90_put_var(ncid, varid25, hhightemp)) 
+! call check(nf90_put_var(ncid, varid26, hcoltemp)) 
+
+!    call check(nf90_put_var(ncid, varid27, lowtemp))
+!    call check(nf90_put_var(ncid, varid28, midtemp))
+ !   call check(nf90_put_var(ncid, varid29, hightemp))
+ !   call check(nf90_put_var(ncid, varid30, coltemp))
+
+
+
+    call check(nf90_close(ncid))
+
+endsubroutine map_recvar2nc5
+!----------------------------------------------------------------------------!
+
+
+
+
+
+
+
+
+
+
+
+
+!----------------------------------------------------------------------------!
+! *** CREATE_MAPNC ***  This routine create a netcdf diag file, and its      !
+!                       dimensions                                           !
+!----------------------------------------------------------------------------!
+! fname      : name of output netcdf diagSR file                             !
+! dname      : period of diagSR file (description of ncdf file)              !
+! nlon       : number of the longitude boxes                                 !
+! nlat       : number of the latitude boxes                                  !
+! vlon       : values of model longitude from 180 to -180                    !
+! vlat       : values of model latitude from 90 to -90                       !
+! vprestop   : values of model altitude                                      !
+! vsrmod     : values of model diag boxes                                    !
+! alt        : values of model altitude                                      !
+! dim        : dimension id of the diagSR var recorded in the ncdf           !
+!              files                                                         !
+! vtime      : number of days since 2000/01/01 for the trimonthly perdiod,   !
+!              in day.                                                       !
+!----------------------------------------------------------------------------!
+! date       : date from the real-system clock and has form yyyymmdd.        !
+! time       : time from the real-system clock and has form hhmmss.sss.      !
+! zone       : represente the difference with respect to Coordinated         !
+!              Universal Time (UTC), and has form (+-)hhmm.                  !
+! value      : 8 dimension value which contains the year,month,day,hour,     !
+!              minute, seconds and milliseconds of the real-time.            !
+! diagmax    : values of SR diagbox                                          !
+! ndims      : dimension of dim (=5 : lon,lat,alt,diag,time)                 !
+! nc_id      : netcdf file id                                                !
+! lon_varid  : variable id of longitude                                      !
+! lat_varid  : variable id of latitude                                       !
+! pres_varid : variable id of altitude                                       !
+! srmod_varid: variable id of diagsr                                         !
+! time_varid : variable id of time                                           !
+! lon_dimid  : dimension id of longitude                                     !
+! lat_dimid  : dimension id of latitude                                      !
+! pres_dimid : dimension id of altitude                                      !
+! srmod_dimid: dimension id of srbox                                         !
+! time_dimid : dimension id of time                                          !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : create_diagnc(file8,file9,lonmod,latmod,altmod,srmod,resd,dimidsd,    !
+!                    altmax,lonmax,latmax)                                   !
+!                                                                            !
+!----------------------------------------------------------------------------!
+subroutine create_diagnc(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vsrmod,vtime,dim,dim2,alt,&
+                         nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer :: nlon , nlat 
+    integer, parameter :: diagmax = 19, ndims = 5, nv=2
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims),dim2(ndims),alt,dim3(nv),dim4(nv),dim5(nv)
+    integer  ::  lon_varid,lat_varid,alt_varid, srmod_varid,time_varid,srmod_varid2,srmod_varid3,srmod_varid4,nc_id,alt_varid2,srmod_varid33,srmod_varid44
+    integer  ::  lon_dimid,lat_dimid,alt_dimid,srmod_dimid,time_dimid,srmod_dimid2,srmod_dimid3,srmod_dimid4, nv_dimid,sr_dimid,sr_dimid2
+    real  ::  vtime  
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real, dimension(diagmax)  ::  vsrmod
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+    real, dimension(diagmax-1)  ::  vsrmod2
+    real, dimension(diagmax-1,2)  ::  vsrmod_bound
+
+
+vsrmod2(:)=0;
+vsrmod_bound(:,:)=0;
+
+   
+vsrmod2(1)=-888
+vsrmod2(2)=-777
+
+      do iz=3,diagmax-1
+            vsrmod2(iz) = (vsrmod(iz)+vsrmod(iz+1))/2
+       enddo
+
+vsrmod_bound(1,:)=-888
+vsrmod_bound(2,:)=-777
+vsrmod_bound(3,1)=-776
+vsrmod_bound(3,2)=0
+
+      do iz=4,diagmax-1
+         vsrmod_bound(iz,1)=vsrmod(iz)
+         vsrmod_bound(iz,2)=vsrmod(iz+1)
+      enddo
+
+
+
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Scattering_Ratio'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+    call check(nf90_def_dim(nc_id, 'box', diagmax-4, srmod_dimid2 ))   
+    call check(nf90_def_dim(nc_id, 'box2', 3, srmod_dimid4 ))   
+
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+  
+    dim = (/lon_dimid, lat_dimid, alt_dimid, srmod_dimid2, time_dimid/)
+    dim2 = (/lon_dimid, lat_dimid, alt_dimid, srmod_dimid4, time_dimid/)
+    dim3 = (/alt_dimid, nv_dimid/)
+    dim4 = (/srmod_dimid2, nv_dimid/)
+    dim5 = (/srmod_dimid4, nv_dimid/)
+
+
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim3, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'srbox_mid', NF90_FLOAT, srmod_dimid2,         &
+               srmod_varid2))
+    call check(nf90_put_att(nc_id, srmod_varid2, 'lon_name',                  &
+               'Middle Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, srmod_varid2, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, srmod_varid2, 'axis','I')) 
+  
+    call check(nf90_def_var(nc_id, 'srbox_mid2', NF90_FLOAT, srmod_dimid4,         &
+               srmod_varid4))
+    call check(nf90_put_att(nc_id, srmod_varid4, 'lon_name',                  &
+               'Middle Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, srmod_varid4, 'units','Arbitrary unit'))
+ 
+    call check(nf90_def_var(nc_id, 'srbox_bound', NF90_FLOAT, dim4,         &
+               srmod_varid33))
+    call check(nf90_put_att(nc_id, srmod_varid33, 'lon_name',                  &
+               'Boundarie Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, srmod_varid33, 'units','Arbitrary unit'))
+
+    call check(nf90_def_var(nc_id, 'srbox_bound2', NF90_FLOAT, dim5,         &
+               srmod_varid44))
+    call check(nf90_put_att(nc_id, srmod_varid44, 'lon_name',                  &
+               'Boundarie Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, srmod_varid44, 'units','Arbitrary unit'))
+ 
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+
+
+
+    call check(nf90_enddef(nc_id))
+	
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+
+    call check(nf90_put_var(nc_id, srmod_varid2, vsrmod2(4:18)))
+    call check(nf90_put_var(nc_id, srmod_varid4, vsrmod2(1:3)))
+    call check(nf90_put_var(nc_id, srmod_varid33, vsrmod_bound(4:18,:)))
+    call check(nf90_put_var(nc_id, srmod_varid44, vsrmod_bound(1:3,:)))
+
+
+
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+  
+    call check(nf90_close(nc_id))
+
+end subroutine create_diagnc
+!----------------------------------------------------------------------------!
+
+subroutine create_diagncpha(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vsrmod,vtime,dim,dim2,alt,&
+                         nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer :: nlon , nlat 
+    integer, parameter :: diagmax = 19, ndims = 5, nv=2
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims),dim2(ndims),alt,dim3(nv),dim4(nv),dim5(nv)
+    integer  ::  lon_varid,lat_varid,alt_varid, srmod_varid,time_varid,srmod_varid2,srmod_varid3,srmod_varid4,nc_id,alt_varid2,srmod_varid33,srmod_varid44
+    integer  ::  lon_dimid,lat_dimid,alt_dimid,srmod_dimid,time_dimid,srmod_dimid2,srmod_dimid3,srmod_dimid4, nv_dimid,sr_dimid,sr_dimid2
+    real  ::  vtime  
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real, dimension(diagmax)  ::  vsrmod
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+    real, dimension(diagmax-8)  ::  vsrmod2
+    real, dimension(diagmax-8,2)  ::  vsrmod_bound
+
+
+vsrmod2(:)=0;
+vsrmod_bound(:,:)=0;
+
+      do iz=8,diagmax-1
+            vsrmod2(iz-7) = (vsrmod(iz)+vsrmod(iz+1))/2
+       enddo
+
+      do iz=8,diagmax-1
+         vsrmod_bound(iz-7,1)=vsrmod(iz)
+         vsrmod_bound(iz-7,2)=vsrmod(iz+1)
+      enddo
+
+print *, "srmod creer"
+
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Phase_Histogram_of_Scattering_Ratio'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+    call check(nf90_def_dim(nc_id, 'box', diagmax-8, srmod_dimid2 ))   
+
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+  
+    dim = (/lon_dimid, lat_dimid, alt_dimid, srmod_dimid2, time_dimid/)
+    dim3 = (/alt_dimid, nv_dimid/)
+    dim4 = (/srmod_dimid2, nv_dimid/)
+
+
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim3, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'srbox_mid', NF90_FLOAT, srmod_dimid2,         &
+               srmod_varid2))
+    call check(nf90_put_att(nc_id, srmod_varid2, 'lon_name',                  &
+               'Middle Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, srmod_varid2, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, srmod_varid2, 'axis','I')) 
+  
+    call check(nf90_def_var(nc_id, 'srbox_bound', NF90_FLOAT, dim4,         &
+               srmod_varid33))
+    call check(nf90_put_att(nc_id, srmod_varid33, 'lon_name',                  &
+               'Boundarie Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, srmod_varid33, 'units','Arbitrary unit'))
+
+ 
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+
+
+
+    call check(nf90_enddef(nc_id))
+	
+print *, 'titi'
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+
+ print *, 'titi'
+   call check(nf90_put_var(nc_id, srmod_varid2, vsrmod2))
+    call check(nf90_put_var(nc_id, srmod_varid33, vsrmod_bound))
+
+print *, 'titi'
+
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+  
+    call check(nf90_close(nc_id))
+
+end subroutine create_diagncpha
+!----------------------------------------------------------------------------!
+
+subroutine create_diagnc2(fname,dname,vlon,vlat,vprestop,vsrmod,vtime,dim2,alt,&
+                         nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer :: nlon , nlat 
+    integer, parameter :: diagmax = 19, ndims = 4
+    integer,dimension(8)  ::  value
+    integer  ::  dim2(ndims),alt
+    integer  ::  lon_varid,lat_varid,pres_varid, srmod_varid,time_varid,nc_id
+    integer  ::  lon_dimid,lat_dimid,pres_dimid,srmod_dimid,time_dimid,srmod_dimid2
+    real  ::  vtime  
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real, dimension(diagmax)  ::  vsrmod
+    real,dimension(alt)  ::  vprestop
+    real, dimension(diagmax-1)  ::  vsrmod2
+
+
+vsrmod2=vsrmod(2:19)
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Scattering_Ratio'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, pres_dimid))
+    call check(nf90_def_dim(nc_id, 'box2', diagmax-1, srmod_dimid2 ))   
+    call check(nf90_def_dim(nc_id, 'box', diagmax, srmod_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+  
+   ! dim = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid, time_dimid/)
+    dim2 = (/lon_dimid, lat_dimid, pres_dimid, time_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'altitude', NF90_FLOAT, pres_dimid, pres_varid))
+    call check(nf90_put_att(nc_id, pres_varid, 'lon_name','Altitude'))
+    call check(nf90_put_att(nc_id, pres_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, pres_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, pres_varid, 'axis','Z'))   
+
+    call check(nf90_def_var(nc_id, 'srbox', NF90_FLOAT, srmod_dimid,         &
+               srmod_varid))
+    call check(nf90_put_att(nc_id, srmod_varid, 'lon_name',                  &
+               'Scattering Ratio Value'))
+    call check(nf90_put_att(nc_id, srmod_varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, srmod_varid, 'axis','I'))  
+
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+    call check(nf90_enddef(nc_id))
+	
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, pres_varid, vprestop))
+    call check(nf90_put_var(nc_id, srmod_varid, vsrmod))
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+  
+    call check(nf90_close(nc_id))
+
+end subroutine create_diagnc2
+!----------------------------------------------------------------------------!
+
+
+subroutine create_depolnc2(fname,dname,vlon,vlat,vprestop,vsrmod,vdepolmod,vtime,dim2,alt,&
+                         nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer :: nlon , nlat 
+    integer, parameter :: diagmax = 17, ndims = 5, depolmax = 21
+    integer,dimension(8)  ::  value
+    integer  ::  dim2(ndims),alt
+    integer  ::  lon_varid,lat_varid,pres_varid, srmod_varid,time_varid,nc_id, depolmod_varid
+    integer  ::  lon_dimid,lat_dimid,pres_dimid,srmod_dimid,time_dimid,srmod_dimid2, depolmod_dimid, depolmod_dimid2
+    real  ::  vtime  
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real, dimension(diagmax)  ::  vsrmod
+    real, dimension(depolmax)  ::  vdepolmod
+    real,dimension(alt)  ::  vprestop
+    real, dimension(diagmax-1)  ::  vsrmod2
+    real, dimension(depolmax-1)  ::  vdepolmod2
+
+
+vsrmod2=vsrmod(2:17)
+vdepolmod2=vdepolmod(2:21)
+
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Depolarization_Ratio'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, pres_dimid))
+    call check(nf90_def_dim(nc_id, 'srbox2', diagmax-1, srmod_dimid2 ))   
+    call check(nf90_def_dim(nc_id, 'srbox', diagmax, srmod_dimid))
+    call check(nf90_def_dim(nc_id, 'depolbox2', depolmax-1, depolmod_dimid2 ))   
+    call check(nf90_def_dim(nc_id, 'depolbox', depolmax, depolmod_dimid))
+
+
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+  
+   ! dim = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid, time_dimid/)
+    dim2 = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid, time_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'altitude', NF90_FLOAT, pres_dimid, pres_varid))
+    call check(nf90_put_att(nc_id, pres_varid, 'lon_name','Altitude'))
+    call check(nf90_put_att(nc_id, pres_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, pres_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, pres_varid, 'axis','Z'))   
+
+    call check(nf90_def_var(nc_id, 'srbox', NF90_FLOAT, srmod_dimid,         &
+               srmod_varid))
+    call check(nf90_put_att(nc_id, srmod_varid, 'lon_name',                  &
+               'Scattering Ratio Value'))
+    call check(nf90_put_att(nc_id, srmod_varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, srmod_varid, 'axis','I'))  
+
+    call check(nf90_def_var(nc_id, 'depolbox', NF90_FLOAT, depolmod_dimid,         &
+               depolmod_varid))
+    call check(nf90_put_att(nc_id, depolmod_varid, 'lon_name',                  &
+               'Depolarization Ratio Value'))
+    call check(nf90_put_att(nc_id, depolmod_varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, depolmod_varid, 'axis','I'))  
+
+
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+    call check(nf90_enddef(nc_id))
+	
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, pres_varid, vprestop))
+    call check(nf90_put_var(nc_id, srmod_varid, vsrmod))
+    call check(nf90_put_var(nc_id, depolmod_varid, vdepolmod))
+
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+  
+    call check(nf90_close(nc_id))
+
+end subroutine create_depolnc2
+!----------------------------------------------------------------------------!
+
+
+subroutine create_depolnc(fname,dname,vlon,vlat,vprestop,vsrmod,vdepolmod,vtime,dim,alt,&
+                         nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer :: nlon , nlat 
+    integer, parameter :: diagmax = 17, ndims = 6, depolmax = 21
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims),dim2(ndims-1),alt
+    integer  ::  lon_varid,lat_varid,pres_varid, srmod_varid,time_varid,nc_id, depolmod_varid
+    integer  ::  lon_dimid,lat_dimid,pres_dimid,srmod_dimid,time_dimid,srmod_dimid2, depolmod_dimid2, depolmod_dimid
+    real  ::  vtime  
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real, dimension(diagmax)  ::  vsrmod
+    real, dimension(depolmax)  ::  vdepolmod
+    real,dimension(alt)  ::  vprestop
+    real, dimension(diagmax-1)  ::  vsrmod2
+    real, dimension(depolmax-1)  ::  vdepolmod2
+
+
+
+vsrmod2=vsrmod(2:17)
+vdepolmod2=vdepolmod(2:21)
+
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Depolarization_Ratio'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, pres_dimid))
+    call check(nf90_def_dim(nc_id, 'srbox2', diagmax-1, srmod_dimid2 ))   
+    call check(nf90_def_dim(nc_id, 'srbox', diagmax, srmod_dimid))
+    call check(nf90_def_dim(nc_id, 'depolbox2', depolmax-1, depolmod_dimid2 ))   
+    call check(nf90_def_dim(nc_id, 'depolbox', depolmax, depolmod_dimid))
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+  
+    dim = (/lon_dimid, lat_dimid, pres_dimid, srmod_dimid2, depolmod_dimid2, time_dimid/)
+    
+   ! dim2 = (/lon_dimid, lat_dimid, pres_dimid, time_dimid/)
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'altitude', NF90_FLOAT, pres_dimid, pres_varid))
+    call check(nf90_put_att(nc_id, pres_varid, 'lon_name','Altitude'))
+    call check(nf90_put_att(nc_id, pres_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, pres_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, pres_varid, 'axis','Z'))   
+
+    call check(nf90_def_var(nc_id, 'srbox', NF90_FLOAT, srmod_dimid,         &
+               srmod_varid))
+    call check(nf90_put_att(nc_id, srmod_varid, 'lon_name',                  &
+               'Scattering Ratio Value'))
+    call check(nf90_put_att(nc_id, srmod_varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, srmod_varid, 'axis','I'))  
+
+    call check(nf90_def_var(nc_id, 'depolbox', NF90_FLOAT, depolmod_dimid,         &
+               depolmod_varid))
+    call check(nf90_put_att(nc_id, depolmod_varid, 'lon_name',                  &
+               'Depolarization Ratio Value'))
+    call check(nf90_put_att(nc_id, depolmod_varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, depolmod_varid, 'axis','I'))  
+
+   call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+    call check(nf90_enddef(nc_id))
+	
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, pres_varid, vprestop))
+    call check(nf90_put_var(nc_id, srmod_varid, vsrmod))
+    call check(nf90_put_var(nc_id, depolmod_varid, vdepolmod))
+
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+  
+    call check(nf90_close(nc_id))
+
+end subroutine create_depolnc
+!----------------------------------------------------------------------------!
+
+subroutine create_diagPHAnc(fname,dname,vlon,vlat,vprestop_mid,vprestop_bound,vtempmod,vtime,dim,alt,&
+                         nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    character(LEN=*)   ::  fname,dname
+    character  ::  date*8,time*10,zone*5
+    integer :: nlon , nlat, iz 
+    integer, parameter :: tempmax = 35, ndims = 6, nv=2, ncat=3
+    integer,dimension(8)  ::  value
+    integer  ::  dim(ndims),alt,dim3(nv),dim4(nv),dim5(nv)
+    integer  ::  lon_varid,lat_varid,alt_varid, tempmod_varid,time_varid,tempmod_varid2,srmod_varid3,srmod_varid4,nc_id,alt_varid2,srmod_varid33,srmod_varid44,cat_varid
+    integer  ::  lon_dimid,lat_dimid,alt_dimid,tempmod_dimid,time_dimid,tempmod_dimid2,srmod_dimid3,srmod_dimid4, nv_dimid,sr_dimid,sr_dimid2, cat_dimid
+    real  ::  vtime
+    real*4, dimension(nlon) :: vlon
+    real*4, dimension(nlat) :: vlat
+    real, dimension(tempmax-1)  ::  vtempmid
+    real, dimension(tempmax)  ::  vtempmod
+    real, dimension(tempmax-1,2)  ::  vtempmod2
+    real,dimension(alt)  ::  vprestop_mid
+    real,dimension(alt,2)  ::  vprestop_bound
+    character(len=3),dimension(ncat,ncat) :: vcat
+
+vcat(1,:)='LIQ'
+vcat(2,:)='ICE'
+vcat(3,:)='VAP'
+
+
+
+      do iz=1,tempmax-1
+         vtempmod2(iz,1)=vtempmod(iz)
+         vtempmod2(iz,2)=vtempmod(iz+1)
+         vtempmid(iz)=(vtempmod(iz)+vtempmod(iz+1))/2
+      enddo
+
+
+
+    call date_and_time(date,time,zone,value)
+
+    call check(nf90_create('./out/'//fname, NF90_CLOBBER,  &
+               nc_id))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Description','GOCCP_Histogram_of_Phase_file'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Date',dname))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Version','Prog_version'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Author',                    &
+               'Gregory CESANA, Helene CHEPFER, LMD/IPSL'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Scientific_contact',        &
+               'helene.chepfer@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Technical_support',         &
+               'gregory.cesana@lmd.polytechnique.fr'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Creationdate',date))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'Website',                &
+               'http://climserv.ipsl.polytechnique.fr/cfmip-obs.html'))
+    call check(nf90_put_att(nc_id, NF90_GLOBAL, 'References',                &
+               'Chepfer et al, 2010, The GCM Oriented CALIPSO Cloud Product (CALIPSO-GOCCP), JGR, 105'))
+    call check(nf90_def_dim(nc_id, 'longitude', nlon, lon_dimid))
+    call check(nf90_def_dim(nc_id, 'latitude', nlat, lat_dimid))
+    call check(nf90_def_dim(nc_id, 'altitude', alt, alt_dimid))
+    call check(nf90_def_dim(nc_id, 'tempbox', tempmax-1, tempmod_dimid )) 
+    call check(nf90_def_dim(nc_id, 'cat', ncat, cat_dimid))
+    call check(nf90_def_dim(nc_id, 'nv', nv, nv_dimid))
+
+    call check(nf90_def_dim(nc_id, 'time', NF90_UNLIMITED, time_dimid))
+  
+    dim = (/lon_dimid, lat_dimid, alt_dimid, tempmod_dimid, cat_dimid, time_dimid/)
+    dim3 = (/alt_dimid, nv_dimid/)
+    dim4 = (/tempmod_dimid, nv_dimid/)
+    dim5 = (/cat_dimid, cat_dimid /)
+
+
+    call check(nf90_def_var(nc_id, 'longitude', NF90_FLOAT, lon_dimid, lon_varid))
+    call check(nf90_put_att(nc_id, lon_varid, 'lon_name','Longitude'))
+    call check(nf90_put_att(nc_id, lon_varid, 'units','degrees_east'))
+    call check(nf90_put_att(nc_id, lon_varid, 'axis','X'))
+
+    call check(nf90_def_var(nc_id, 'latitude', NF90_FLOAT, lat_dimid, lat_varid))
+    call check(nf90_put_att(nc_id, lat_varid, 'lon_name','Latitude'))
+    call check(nf90_put_att(nc_id, lat_varid, 'units','degrees_north'))
+    call check(nf90_put_att(nc_id, lat_varid, 'axis','Y'))
+
+    call check(nf90_def_var(nc_id, 'alt_mid', NF90_FLOAT, alt_dimid, alt_varid))
+    call check(nf90_put_att(nc_id, alt_varid, 'lon_name','Middle of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid, 'units','kilometer'))
+    call check(nf90_put_att(nc_id, alt_varid, 'positive','up'))
+    call check(nf90_put_att(nc_id, alt_varid, 'axis','Z'))    
+
+    call check(nf90_def_var(nc_id, 'alt_bound', NF90_FLOAT, dim3, alt_varid2))
+    call check(nf90_put_att(nc_id, alt_varid2, 'lon_name','Boundaries of the altitude bin'))
+    call check(nf90_put_att(nc_id, alt_varid2, 'units','kilometer'))
+
+    call check(nf90_def_var(nc_id, 'temp_mid', NF90_FLOAT, tempmod_dimid,         &
+               tempmod_varid))
+    call check(nf90_put_att(nc_id, tempmod_varid, 'lon_name',                  &
+               'Middle Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, tempmod_varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, tempmod_varid, 'axis','I')) 
+
+    call check(nf90_def_var(nc_id, 'temp_bound', NF90_FLOAT, dim4,         &
+               tempmod_varid2))
+    call check(nf90_put_att(nc_id, tempmod_varid2, 'lon_name',                  &
+               'Middle Value of Scattering Ratio Boxes'))
+    call check(nf90_put_att(nc_id, tempmod_varid2, 'units','Arbitrary unit'))
+    call check(nf90_put_att(nc_id, tempmod_varid2, 'axis','I')) 
+  
+    call check(nf90_def_var(nc_id, 'category', NF90_CHAR, dim5, cat_varid))
+    call check(nf90_put_att(nc_id, cat_varid, 'lon_name','Category'))
+    call check(nf90_put_att(nc_id, cat_varid, 'units','Arbitrary unit'))
+
+
+    call check(nf90_def_var(nc_id, 'time', NF90_FLOAT, time_dimid, time_varid))
+    call check(nf90_put_att(nc_id, time_varid, 'lon_name','Time'))
+    call check(nf90_put_att(nc_id, time_varid, 'units',                      &
+               'days since 2000-01-01 00:00:00'))
+    call check(nf90_put_att(nc_id, time_varid, 'axis','T'))  
+    call check(nf90_put_att(nc_id, time_varid, 'comment',                    &
+               'monthly means: date is set to the 15th of the month'))  
+
+
+
+    call check(nf90_enddef(nc_id))
+	
+    call check(nf90_put_var(nc_id, lon_varid, vlon))
+    call check(nf90_put_var(nc_id, lat_varid, vlat))
+    call check(nf90_put_var(nc_id, alt_varid, vprestop_mid))
+    call check(nf90_put_var(nc_id, alt_varid2, vprestop_bound))
+
+    call check(nf90_put_var(nc_id, tempmod_varid, vtempmid))
+    call check(nf90_put_var(nc_id, tempmod_varid2, vtempmod2))
+
+    call check(nf90_put_var(nc_id, cat_varid, vcat))
+
+    call check(nf90_put_var(nc_id, time_varid, vtime))
+  
+    call check(nf90_close(nc_id))
+
+end subroutine create_diagPHAnc
+!----------------------------------------------------------------------------!
+
+subroutine diagPHA_recvar2nc3(diagpha,dim,fname,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat 
+    real,parameter  ::   nan=-9999
+    integer, parameter :: tempmax = 34, ndims = 6
+    integer  ::  dim(ndims),alt
+    integer  ::  varid, varid2, ncid
+    character(LEN=*)   ::  fname
+    real,dimension(nlon,nlat,alt,tempmax,3)  ::  diagpha
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidarPHASE', NF90_FLOAT, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+             'Lidar ICE/LIQUID/VAPOR Phase occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+
+
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diagpha(:,:,:,:,:)))
+
+    call check(nf90_close(ncid))
+    
+end subroutine diagPHA_recvar2nc3
+
+!----------------------------------------------------------------------------!
+! *** DIAG_RECVAR2NC *** This routine record the diag variables in the netcdf!
+!                        prof file                                           !
+!----------------------------------------------------------------------------!
+! fname      : name of output netcdf diagSR file                             !
+! diag       : diagSR variable                                               !
+! dim        : dimension id of the isccp variables                           !
+! nlon       : number of the longitude boxes                                 !
+! nlat       : number of the latitude boxes                                  !
+! alt        : number of model altitude                                      !
+!----------------------------------------------------------------------------!
+! nan        : Not a Number value                                            !
+! diagmax    : number of SR diagbox                                          !
+! ndims      : dimension of dim (= 5 : lon,lat,alt,diagbox,time)             !
+! ncid       : netcdf file id                                                !
+! varid      : variable id of diagSR                                         !
+!----------------------------------------------------------------------------!
+!                                                                            !
+! ex : diag_recvar2nc(monthdiagSR,dimidsd,file8,altmax,lonmax,latmax)        !
+!                                                                            !
+!----------------------------------------------------------------------------!
+subroutine diag_recvar2nc(diag,diag1,dim,dim2,fname,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat 
+    real,parameter  ::   nan=-9999
+    integer, parameter :: diagmax = 15, ndims = 5
+    integer  ::  dim(ndims), dim2(ndims-1),alt
+    integer  ::  varid,varid2, ncid
+    character(LEN=*)   ::  fname
+    real*4,dimension(nlon,nlat,alt,diagmax)  ::  diag
+    real*4,dimension(nlon,nlat,alt)  ::  diag1
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidarsr532_Occ', NF90_FLOAT, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+             'Number of Scattering Ratio occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+
+    call check(nf90_def_var(ncid, 'negdiagSR_Occ', NF90_FLOAT, dim2, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                         &
+             'Number of Scattering Ratio occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid2, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diag))
+    call check(nf90_put_var(ncid, varid2, diag1))
+
+    call check(nf90_close(ncid))
+    
+end subroutine diag_recvar2nc
+!----------------------------------------------------------------------------!
+
+
+
+subroutine diag_recvar2nc2(diag,dim,fname,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat 
+    real,parameter  ::   nan=-9999
+    integer, parameter :: diagmax = 16, ndims = 5
+    integer  ::  dim(ndims), alt
+    integer  ::  varid, ncid
+    character(LEN=*)   ::  fname
+    real*8,dimension(nlon,nlat,alt,diagmax)  ::  diag
+ !   real*4,dimension(nlon,nlat,alt)  ::  diag1
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidarsr532_Frac', NF90_FLOAT, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+           'Lidar Scattering Ratio CFAD (532nm) Fraction of occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','1 fraction'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diag))
+
+    call check(nf90_close(ncid))
+    
+end subroutine diag_recvar2nc2
+!----------------------------------------------------------------------------!
+
+subroutine diag_recvar2nc3(diag,dim,dim2,fname,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat 
+    real,parameter  ::   nan=-9999
+    integer, parameter :: diagmax = 18, ndims = 5
+    integer  ::  dim(ndims),dim2(ndims),alt
+    integer  ::  varid, varid2, ncid
+    character(LEN=*)   ::  fname
+    real,dimension(nlon,nlat,alt,diagmax)  ::  diag
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidarsr532_Occ', NF90_FLOAT, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+             'Lidar Scattering Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+
+   call check(nf90_def_var(ncid, 'cfad_lidarsr532_Occ2', NF90_FLOAT, dim2, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                         &
+             'Lidar Scattering Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid2, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+
+
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diag(:,:,:,4:18)))
+    call check(nf90_put_var(ncid, varid2, diag(:,:,:,1:3)))
+
+    call check(nf90_close(ncid))
+    
+end subroutine diag_recvar2nc3
+!----------------------------------------------------------------------------!
+
+subroutine diag_recvar2nc3pha(diag,dim,dim2,fname,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat 
+    real,parameter  ::   nan=-9999.
+    integer, parameter :: diagmax = 11, ndims = 5
+    integer  ::  dim(ndims),dim2(ndims),alt
+    integer  ::  varid, varid2, varid3, ncid
+    character(LEN=*)   ::  fname
+    real,dimension(nlon,nlat,alt,diagmax,3)  ::  diag
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidarsr532_liq', NF90_FLOAT, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+             'Lidar Scattering Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+
+   call check(nf90_def_var(ncid, 'cfad_lidarsr532_ice', NF90_FLOAT, dim, varid2))
+    call check(nf90_put_att(ncid, varid2, 'lon_name',                         &
+             'Lidar Scattering Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid2, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid2, '_FillValue',nan))
+
+   call check(nf90_def_var(ncid, 'cfad_lidarsr532_un', NF90_FLOAT, dim, varid3))
+    call check(nf90_put_att(ncid, varid3, 'lon_name',                         &
+             'Lidar Scattering Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid3, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid3, '_FillValue',nan))
+
+
+
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diag(:,:,:,:,1)))
+    call check(nf90_put_var(ncid, varid2, diag(:,:,:,:,2)))
+    call check(nf90_put_var(ncid, varid3, diag(:,:,:,:,3)))
+
+    call check(nf90_close(ncid))
+    
+end subroutine diag_recvar2nc3pha
+!----------------------------------------------------------------------------!
+
+subroutine depol_recvar2nc3(diag,dim,fname,alt,nlon,nlat)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat 
+    real,parameter  ::   nan=-9999
+    integer, parameter :: diagmax = 17, ndims = 6, depolmax = 21
+    integer  ::  dim(ndims),alt
+    integer  ::  varid, ncid
+    character(LEN=*)   ::  fname
+    real*8,dimension(nlon,nlat,alt,diagmax-1,depolmax-1)  ::  diag
+
+
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidardepol532_Occ', NF90_FLOAT, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+             'Lidar Depolarization Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diag))
+
+
+    call check(nf90_close(ncid))
+    
+end subroutine depol_recvar2nc3
+!----------------------------------------------------------------------------!
+
+
+subroutine diag_recvar2nc4(diag,dim,fname,alt,nlon,nlat,ndiag)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat
+    real,parameter  ::   nan=-9999
+    integer, parameter :: diagmax = 18, ndims = 4
+    integer  ::  dim(ndims),alt
+    integer  ::  varid, ncid
+    character(LEN=*)   ::  fname
+    character  ::  ndiag*2
+    integer,dimension(nlon,nlat,alt)  ::  diag
+
+print *, 'monthdiagSR_Occ'// trim(ADJUSTL(ndiag))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidarsr532_Occ'//trim(ADJUSTL(ndiag)), NF90_INT4, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+             'Lidar Scattering Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diag))
+
+
+    call check(nf90_close(ncid))
+    
+end subroutine diag_recvar2nc4
+!----------------------------------------------------------------------------!
+
+
+subroutine depol_recvar2nc4(diag,dim,fname,alt,nlon,nlat,ndiag)
+
+    use netcdf
+    implicit none
+
+    integer :: nlon , nlat
+    real,parameter  ::   nan=-9999
+    integer, parameter :: diagmax = 16, ndims = 5
+    integer  ::  dim(ndims),alt
+    integer  ::  varid, ncid
+    character(LEN=*)   ::  fname
+    character  ::  ndiag*2
+    real*8,dimension(nlon,nlat,alt,diagmax)  ::  diag
+
+print *, 'monthdepolSR_Occ'// trim(ADJUSTL(ndiag))
+    call check(nf90_open('./out/'//fname,NF90_WRITE,ncid))
+
+    call check(nf90_redef(ncid))
+
+    call check(nf90_def_var(ncid, 'cfad_lidardepol532_Occ'//trim(ADJUSTL(ndiag)), NF90_FLOAT, dim, varid))
+    call check(nf90_put_att(ncid, varid, 'lon_name',                         &
+             'Lidar Depolarization Ratio CFAD (532nm) occurence accumulated over a month'))
+    call check(nf90_put_att(ncid, varid, 'units','Arbitrary unit'))
+    call check(nf90_put_att(ncid, varid, '_FillValue',nan))
+    call check(nf90_enddef(ncid))
+    call check(nf90_put_var(ncid, varid, diag))
+
+
+    call check(nf90_close(ncid))
+    
+end subroutine depol_recvar2nc4
+!----------------------------------------------------------------------------!
+
+
+
+
+
+
+
+subroutine rdnc3(fname,var,alt,nlon,nlat,nvar)
+  use netcdf
+  implicit none
+character(len=*)  ::  nvar, fname
+integer  ::  ncid,varid
+integer :: nlon , nlat, alt
+integer,dimension(nlon,nlat,alt) :: var
+
+print *, nvar
+
+call check(NF90_OPEN(fname,NF90_NOWRITE,ncid))
+call check(NF90_inq_varid(ncid,nvar,varid))
+call check(NF90_get_var(ncid,varid,var))
+call check(NF90_CLOSE(ncid))
+ !  call rdnc3('./out/'//trim(file7)//'.tmp',monthdiagSR1,'monthdiagSR_Occ'//trim(adjustl(idiagc)))
+
+end subroutine rdnc3
+
+subroutine rdnc4(fname,var,alt,nlon,nlat,nvar)
+  use netcdf
+  implicit none
+character(len=*)  ::  nvar, fname
+integer  ::  ncid,varid
+integer, parameter  :: diagmax = 17
+integer :: nlon , nlat, alt
+real*8,dimension(nlon,nlat,alt,diagmax-1) :: var
+
+print *, nvar
+
+call check(NF90_OPEN(fname,NF90_NOWRITE,ncid))
+call check(NF90_inq_varid(ncid,nvar,varid))
+call check(NF90_get_var(ncid,varid,var))
+call check(NF90_CLOSE(ncid))
+ !  call rdnc3('./out/'//trim(file7)//'.tmp',monthdiagSR1,'monthdiagSR_Occ'//trim(adjustl(idiagc)))
+
+end subroutine rdnc4
+
+
+
+!****************************************************************************!
 
 
 end program calmdz

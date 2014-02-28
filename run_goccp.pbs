@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # script to run GOCCP on the cluster for a given input list file
-# 
 
 # to start this job: qsub -v liste='201301_night' run_goccp.pbs
 # si on veut faire le jour il faut changer le fichier src/args.init
@@ -25,16 +24,15 @@ period=${liste%%"_"*}
 
 cd $output
 
-ln -s ../CFMIP2.p .
-ln -s ../grilles_lmdz .
-ln -s ../Liste .
+ln -s ../GRIDS .
+ln -s ../IN .
 
 cp ../calmdz2.70.e .
 cp ../args.init args
 
 sed -i s/LISTNAME/$liste/g args 
-sed -i s/PERIOD_ID/$period/g args
+#sed -i s/PERIOD_ID/$period/g args
 
-mkdir instant
+mkdir -p out/instant
 
 ./calmdz2.70.e < args
