@@ -87,6 +87,8 @@ end subroutine vertical_mean_chim
 !                          altitude,1)                                       !
 !----------------------------------------------------------------------------!
 subroutine vertical_mean(var1,var2,var3,ind,i,iz,ilid,nprofs,alt,alt2,nvar)
+!             call vertical_mean(temp2,tempmoy,atb,indicetemp,i,iz,ilid,it,altmax,&
+!                                 altitude,3)    
   
   implicit none
   integer  ::  nvar
@@ -142,14 +144,13 @@ subroutine vertical_mean_hori(var1,var2,var3,ind,i,iz,ilid,nprofs,alt,alt2,nvar,
   
   implicit none
   integer  ::  nvar, n
-  integer  ::  i,iz,nprofs,alt,ilid,profavg,profmax,it
+  integer  ::  i,iz,nprofs,alt,ilid,profavg,profmax, it
   integer(kind=2)  ::  alt2
   real*4  ::  var2m, indm
   real*4,dimension(alt2,nprofs)  ::  var1,var3
   real*4,dimension(alt,nprofs)  ::  var2
   real*4,dimension(alt,nprofs)  ::  ind
   
-  ! change vnoel 20140224 - same as in atb_mol
   it = nprofs
 
 
