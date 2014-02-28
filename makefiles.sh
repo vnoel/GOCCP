@@ -2,10 +2,17 @@
 unset LANG
 ulimit -s unlimited
 
+house=`pwd`
+home='/home/gcesana/src'
+#-*-makefile-*-
+
 ### Specify your compiler
 IFORT="ifort"
 G95="pgf90"
 COMPILO=$IFORT
+
+### This header file is automatically included in the secondary Makefiles.
+### Please tune it to your own installation
 
 ### Specify where the headers and libraries of your netCDF package reside.
 # Example : 
@@ -25,15 +32,18 @@ COMPILO=$IFORT
 NETCDFLIB=/opt/netcdf/$COMPILO/lib
 NETCDFINC=/opt/netcdf/$COMPILO/include
 
+#NETCDFLIB=/homedata/gcesana/local/ifort/netcdf-4.1.1/lib
+#NETCDFINC=/homedata/gcesana/local/ifort/netcdf-4.1.1/include
+
 ### Specify where the headers and libraries of your HDF package reside.
 HDFLIB=/usr/lib64/hdf
 HDFINC=/usr/include/hdf
 
+
+
 ### Specify the filename
 NAME=$1
-# build instant files or not ?
 instant=$2
-# no overlap mode (0/1)
 nol=$3
 
 ### Clean the execute file
@@ -47,7 +57,6 @@ nol=$3
 
 ### Choose your execution mode { PROD | DEVEL }
 ### PROD is fast, DEVEL allows for more checking and error tracking
-### FIXME : this does not work ! DEVEL = runtime check failure
 MODE="PROD"
 
 ### If you use the Fedora Core 4 GNU/Linux distribution, you may
@@ -55,6 +64,7 @@ MODE="PROD"
 #   If this is the case, you should disable it.
 #   Otherwise just comment out the following line to get the maximum
 #   performance of CHIMERE.
+#FC4_BUG = -no-ipo
 FC4_BUG=-no-ipo
 
 
@@ -92,13 +102,12 @@ fi
 
 fi
 
-# echo ${COMPILO} $NAME.tmp.f90 sds.f90 atb.f90 subgrid.f90 vertical_mean.f90 surface.f90 output.f90 calendar.f90 $F90FLAGS1 -o ${NAME}.e
-# ${COMPILO} $NAME.tmp.f90 sds.f90 atb.f90 subgrid.f90 vertical_mean.f90 surface.f90 output.f90 calendar.f90 $F90FLAGS1 -o ${NAME}.e
+echo ${COMPILO} $NAME.tmp.f90 calendar.f90 $F90FLAGS1 -o ${NAME}.e
 
-echo ${COMPILO} $NAME.tmp.f90 output.f90 surface.f90 vertical_mean.f90 subgrid.f90 signal.f90 calendar.f90 $F90FLAGS1 -o ${NAME}.e
-${COMPILO} $NAME.tmp.f90 output.f90 surface.f90 vertical_mean.f90 subgrid.f90 signal.f90 calendar.f90 $F90FLAGS1 -o ${NAME}.e
+${COMPILO} $NAME.tmp.f90 $home/calendar.f90 $F90FLAGS1 -o ${NAME}.e
 
 #ifort $1.tmp.f90 calendar.f90 -I/usr/include/hdf -L/usr/lib64/hdf -lmfhdf -ldf -ljpeg -lz -I/opt/netcdf/ifort/include/ -L/opt/netcdf/ifort/lib -lnetcdf -o $1.e
 
 # Clean trash
 rm -f $NAME.tmp.f90
+
