@@ -1,10 +1,14 @@
 #!/bin/sh
+
+if [ "$#" -ne 3 ]; then
+  echo "Usage: $0 calmdzX.YY on/off 0/1"
+  echo "on = enable saving instant files"
+  echo "1 = enable no-overlap mode"
+  exit 1
+fi
+
 unset LANG
 ulimit -s unlimited
-
-house=`pwd`
-home='/home/gcesana/src'
-#-*-makefile-*-
 
 ### Specify your compiler
 IFORT="ifort"
