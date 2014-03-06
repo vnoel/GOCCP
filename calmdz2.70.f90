@@ -628,14 +628,15 @@ program calmdz
 !   mheure    : time averaged on lon/lat/alt grid with CHIM/WRF model        !
 !                                                                            !
 !----------------------------------------------------------------------------!
-      real*4,dimension(:),allocatable  ::  latmod, lonmod, srmod, prestop, depolmod, pr2mod, srdepmod,atbrmod, tempmod!, crmod
-      real*4,dimension(:),allocatable  ::  latmid, lonmid      
-      real,dimension(:),allocatable  ::  altmod, altmid,tempmid
-      real,dimension(:,:),allocatable  :: altmod_bound, tempmod_bound
-      real,dimension(:,:),allocatable  ::  pr2moy,  molmoy, srmoy,depolmoy, pr2moy2,crmoy,perpmoy,parmoy, tempmoy
-      real,dimension(:,:),allocatable  ::  indice, indicem, indiceh, indice2,indicep,indicep2,indicetemp 
-      real*4,dimension(:,:),allocatable  ::  mheure
-      real*4,dimension(:,:),allocatable  :: SRwrf,CRwrf,DEPOLwrf            
+
+real*4,dimension(:),allocatable  ::  latmod, lonmod, srmod, prestop, depolmod, pr2mod, srdepmod,atbrmod, tempmod!, crmod
+real*4,dimension(:),allocatable  ::  latmid, lonmid      
+real,dimension(:),allocatable  ::  altmod, altmid,tempmid
+real,dimension(:,:),allocatable  :: altmod_bound, tempmod_bound
+real,dimension(:,:),allocatable  ::  pr2moy,  molmoy, srmoy,depolmoy, pr2moy2,crmoy,perpmoy,parmoy, tempmoy
+real,dimension(:,:),allocatable  ::  indice, indicem, indiceh, indice2,indicep,indicep2,indicetemp 
+real*4,dimension(:,:),allocatable  ::  mheure
+real*4,dimension(:,:),allocatable  :: SRwrf,CRwrf,DEPOLwrf            
 
 !----------------------------------------------------------------------------!
 ! LMDZ output variables                                                      !
@@ -722,98 +723,98 @@ program calmdz
 !   sumdiag         : sum of diagSR at an altitude                           !
 !                                                                            !
 !----------------------------------------------------------------------------!
-      real,dimension(:,:),allocatable :: uncertfraction,satfraction,       &
-                                           cloudfraction,clearfraction,      &
-                                           nanfraction,sefraction,           &
-                                           rejfraction,fractot,cloudfraction2
+real,dimension(:,:),allocatable :: uncertfraction,satfraction,       &
+								   cloudfraction,clearfraction,      &
+								   nanfraction,sefraction,           &
+								   rejfraction,fractot,cloudfraction2
 
-      real,dimension(:,:,:,:),allocatable :: cloudfractday, clearfractday, &
-                                           !    satfractday, sefractday ,     &
-                                               uncertfractday, &! nanfractday,  &
-                                               indday!,inddaytot  
+real,dimension(:,:,:,:),allocatable :: cloudfractday, clearfractday, &
+								   !    satfractday, sefractday ,     &
+									   uncertfractday, &! nanfractday,  &
+									   indday!,inddaytot  
 
-      real,dimension(:,:,:),allocatable :: monthcloudfract,monthclearfract,&
-                                             monthuncertfract, &!monthnanfract, &
-                                            ! monthsatfract, monthsefract,    &
-                                             indpermonth,indphasepermonth
+real,dimension(:,:,:),allocatable :: monthcloudfract,monthclearfract,&
+									 monthuncertfract, &!monthnanfract, &
+									! monthsatfract, monthsefract,    &
+									 indpermonth,indphasepermonth
 
-      integer,dimension(:,:,:),allocatable  ::  indnan
+integer,dimension(:,:,:),allocatable  ::  indnan
 
-      integer,dimension(:),allocatable :: isccplow, isccpmid, isccphigh,      &
-                                         colcloud!, colclear  
-      integer,dimension(:,:),allocatable :: isccpliq, isccpice
-      integer,dimension(:,:,:),allocatable :: isccpun
-
- 
-       integer  ::  indbase
-       real,dimension(:,:,:),allocatable  ::  heightday2
-       real,dimension(:),allocatable  ::  height2
-       real,dimension(:,:),allocatable  ::  monthheight2
-
-       real,dimension(:,:,:),allocatable  ::  heightday,indheight
-       real,dimension(:,:),allocatable  ::  monthheight,indmonthheight
-       real,dimension(:),allocatable  ::  heightmod
-       integer,dimension(:,:,:),allocatable  ::  hlow,hmid,hhigh,hcol
-       real,dimension(:,:,:),allocatable  ::  hheight
-       real,dimension(:),allocatable  ::  height
-       integer  ::  iheight, ihist, ihisttemp, icat
-       integer,parameter  ::  heightmax=41, catmax=5
-       integer,parameter  ::  histmax=11, histmax2=41, histtempmax=29,histtempmax2=28
-       integer,dimension(histmax2)  ::  histmod2
-       real,dimension(histmax)  ::  histmod
- 
-       real,dimension(histtempmax)  ::  histtempmod
-       real,dimension(histtempmax2)  ::  histtempmod2
- 
-       integer,dimension(:,:,:),allocatable  :: hcoltemp,hlowtemp,hmidtemp,hhightemp
-       real,dimension(:,:,:),allocatable  :: coltemp,lowtemp,midtemp,hightemp
-       real,dimension(:,:,:),allocatable  :: indcoltemp,indlowtemp,indmidtemp,indhightemp
- 
-       real,dimension(:,:),allocatable  ::  monthlowtemp,monthmidtemp,monthhightemp,monthcoltemp
-       real,dimension(:,:),allocatable  ::  indmonthlowtemp,indmonthmidtemp,indmonthhightemp,indmonthcoltemp
+integer,dimension(:),allocatable :: isccplow, isccpmid, isccphigh,      &
+								 colcloud!, colclear  
+integer,dimension(:,:),allocatable :: isccpliq, isccpice
+integer,dimension(:,:,:),allocatable :: isccpun
 
 
-      real,dimension(:,:,:),allocatable :: isccplowday, isccpmidday,       &
-                                             isccphighday, isccpindday,      &
-                                             isccpinddaylow, isccpinddaymid, &
-                                             colcloudday!, colclearday
+integer  ::  indbase
+real,dimension(:,:,:),allocatable  ::  heightday2
+real,dimension(:),allocatable  ::  height2
+real,dimension(:,:),allocatable  ::  monthheight2
+
+real,dimension(:,:,:),allocatable  ::  heightday,indheight
+real,dimension(:,:),allocatable  ::  monthheight,indmonthheight
+real,dimension(:),allocatable  ::  heightmod
+integer,dimension(:,:,:),allocatable  ::  hlow,hmid,hhigh,hcol
+real,dimension(:,:,:),allocatable  ::  hheight
+real,dimension(:),allocatable  ::  height
+integer  ::  iheight, ihist, ihisttemp, icat
+integer,parameter  ::  heightmax=41, catmax=5
+integer,parameter  ::  histmax=11, histmax2=41, histtempmax=29,histtempmax2=28
+integer,dimension(histmax2)  ::  histmod2
+real,dimension(histmax)  ::  histmod
+
+real,dimension(histtempmax)  ::  histtempmod
+real,dimension(histtempmax2)  ::  histtempmod2
+
+integer,dimension(:,:,:),allocatable  :: hcoltemp,hlowtemp,hmidtemp,hhightemp
+real,dimension(:,:,:),allocatable  :: coltemp,lowtemp,midtemp,hightemp
+real,dimension(:,:,:),allocatable  :: indcoltemp,indlowtemp,indmidtemp,indhightemp
+
+real,dimension(:,:),allocatable  ::  monthlowtemp,monthmidtemp,monthhightemp,monthcoltemp
+real,dimension(:,:),allocatable  ::  indmonthlowtemp,indmonthmidtemp,indmonthhightemp,indmonthcoltemp
+
+
+real,dimension(:,:,:),allocatable :: isccplowday, isccpmidday,       &
+									 isccphighday, isccpindday,      &
+									 isccpinddaylow, isccpinddaymid, &
+									 colcloudday!, colclearday
 
 
 !      real,dimension(:,:,:,:),allocatable :: isccpindphaseday
 
 
-      real*8  ::  colclearres
+real*8  ::  colclearres
 
-      real  ::  isccptemp
+real  ::  isccptemp
 
-      real,dimension(:,:,:,:),allocatable :: isccpiceday, isccpliqday
-      real,dimension(:,:,:,:,:),allocatable :: isccpunday
-      real,dimension(:,:,:,:),allocatable :: isccpphaseday
-      real,dimension(:,:,:),allocatable :: isccpdustday
+real,dimension(:,:,:,:),allocatable :: isccpiceday, isccpliqday
+real,dimension(:,:,:,:,:),allocatable :: isccpunday
+real,dimension(:,:,:,:),allocatable :: isccpphaseday
+real,dimension(:,:,:),allocatable :: isccpdustday
 
-      real,dimension(:,:,:),allocatable :: monthisccpice, monthisccpliq
-      real,dimension(:,:,:,:),allocatable :: monthisccpun
-      real,dimension(:,:,:),allocatable :: monthisccpphase,indmonthphase
-      real,dimension(:,:,:),allocatable :: indmonthphase2
-      integer,dimension(:,:,:),allocatable  ::  indmonthphase3D
+real,dimension(:,:,:),allocatable :: monthisccpice, monthisccpliq
+real,dimension(:,:,:,:),allocatable :: monthisccpun
+real,dimension(:,:,:),allocatable :: monthisccpphase,indmonthphase
+real,dimension(:,:,:),allocatable :: indmonthphase2
+integer,dimension(:,:,:),allocatable  ::  indmonthphase3D
 
-      real,dimension(:,:),allocatable :: monthisccplow, monthisccpmid,     &
-                                           monthisccphigh, isccpdaypermonth, &
-                                           isccpdaypermonthlow,              &
-                                           isccpdaypermonthmid,              &
-                                           monthcolcloud, monthcolclear
+real,dimension(:,:),allocatable :: monthisccplow, monthisccpmid,     &
+								   monthisccphigh, isccpdaypermonth, &
+								   isccpdaypermonthlow,              &
+								   isccpdaypermonthmid,              &
+								   monthcolcloud, monthcolclear
 
-      !real,dimension(:,:,:,:),allocatable :: monthdiagSR!,monthdiagCR
-      !real*8,dimension(:,:,:,:,:),allocatable :: monthdepolSR                         
-      !integer*4,dimension(:,:,:),allocatable  ::  monthdiagSR1!, monthdiagCR1
-      !real*8,dimension(:,:,:,:),allocatable  ::  monthdepolSR1
-      real,dimension(:,:,:,:),allocatable :: diagSR!,diagCR
-      real,dimension(:,:,:,:,:),allocatable :: diagSRpha!,diagCR
+!real,dimension(:,:,:,:),allocatable :: monthdiagSR!,monthdiagCR
+!real*8,dimension(:,:,:,:,:),allocatable :: monthdepolSR                         
+!integer*4,dimension(:,:,:),allocatable  ::  monthdiagSR1!, monthdiagCR1
+!real*8,dimension(:,:,:,:),allocatable  ::  monthdepolSR1
+real,dimension(:,:,:,:),allocatable :: diagSR!,diagCR
+real,dimension(:,:,:,:,:),allocatable :: diagSRpha!,diagCR
 
-      real,dimension(:,:,:,:,:),allocatable :: diagPHA!,diagCR
+real,dimension(:,:,:,:,:),allocatable :: diagPHA!,diagCR
 
-      !integer*4,dimension(:,:,:,:,:),allocatable :: depolSR
-      integer*4  ::  sumdiag
+!integer*4,dimension(:,:,:,:,:),allocatable :: depolSR
+integer*4  ::  sumdiag
 
 
 !----------------------------------------------------------------------------!
@@ -821,41 +822,41 @@ program calmdz
 !----------------------------------------------------------------------------!
 !   altl   : altitude of lidar lvl in kilometer, dim=(altitude)              !
 !   altm   : altitude of meteo lvl in kilometer, dim=(altitude2)             !
-!                                                                            !
 !----------------------------------------------------------------------------!
-      real*4,dimension(:),allocatable  ::  altl, altm  
-      
-      integer  ::  seuilsnrlow, seuilsnrhigh
-      integer  ::  nanprof, nansat, nanmid, nanlow
-      integer  ::  icewaterres
-      real,parameter  ::  alpha=0.0028, beta=0.0458, alpha1=3., beta1=0.0576
+
+real*4,dimension(:),allocatable  ::  altl, altm  
+
+integer  ::  seuilsnrlow, seuilsnrhigh
+integer  ::  nanprof, nansat, nanmid, nanlow
+integer  ::  icewaterres
+real,parameter  ::  alpha=0.0028, beta=0.0458, alpha1=3., beta1=0.0576
 !      real,parameter  ::  alpha50=1.2682e+04, beta50=-3.0508e+03, gamma50=242.9602, delta50=-4.9362, epsilon50=0.2043, zeta50=-5.6937e-04
 
-      real,parameter  ::  alpha50=9.0322e+03, beta50=-2.1358e+03, gamma50=173.3963, delta50=-3.9514, epsilon50=0.2559, zeta50=-9.4776e-04
+real,parameter  ::  alpha50=9.0322e+03, beta50=-2.1358e+03, gamma50=173.3963, delta50=-3.9514, epsilon50=0.2559, zeta50=-9.4776e-04
 
-      real,parameter  ::  Ahoi=0.1667, Bhoi=-0.01
-      real  ::  depoltmp, perptmp1, perptmp2
-      real,dimension(:,:),allocatable :: icecloud, watercloud,phasecloud
-      real,dimension(:,:,:),allocatable :: uncloud
-      real,dimension(:,:,:,:),allocatable :: icecloudfractday, watercloudfractday,indphaseday
-      real,dimension(:,:,:,:),allocatable :: phasefractday,inddayphase
-      real,dimension(:,:,:,:,:),allocatable :: uncloudfractday
-      real,dimension(:,:,:,:),allocatable :: indphasefractday
-      real,dimension(:,:,:,:,:),allocatable :: indphaseunday
+real,parameter  ::  Ahoi=0.1667, Bhoi=-0.01
+real  ::  depoltmp, perptmp1, perptmp2
+real,dimension(:,:),allocatable :: icecloud, watercloud,phasecloud
+real,dimension(:,:,:),allocatable :: uncloud
+real,dimension(:,:,:,:),allocatable :: icecloudfractday, watercloudfractday,indphaseday
+real,dimension(:,:,:,:),allocatable :: phasefractday,inddayphase
+real,dimension(:,:,:,:,:),allocatable :: uncloudfractday
+real,dimension(:,:,:,:),allocatable :: indphasefractday
+real,dimension(:,:,:,:,:),allocatable :: indphaseunday
 
-      real,dimension(:,:,:),allocatable :: monthicecloud, monthwatercloud
-      real,dimension(:,:,:),allocatable :: indphasemonth
-      real,dimension(:,:,:,:),allocatable :: monthuncloud
-      real,dimension(:,:,:),allocatable :: monthphasecloud
-      real,dimension(:,:,:),allocatable  ::  monthcftemp,monthcftempice
-      real,dimension(:,:,:),allocatable  ::  monthcftempliq
-      real,dimension(:,:,:),allocatable  :: monthcftempphase,indmonthphasetemp
-      real,dimension(:,:,:),allocatable  :: indcftemppermonth
-      real,dimension(:,:,:,:),allocatable  :: indcftempphase,indcftemp
-      real,dimension(:,:,:,:),allocatable  :: cftempday,cftempphaseday
-      real,dimension(:,:,:,:),allocatable  :: cftempiceday,cftempliqday
-      real,dimension(:,:),allocatable  ::  cftemp,cftempliq,cftempice
-      real  ::  cfsumtemp
+real,dimension(:,:,:),allocatable :: monthicecloud, monthwatercloud
+real,dimension(:,:,:),allocatable :: indphasemonth
+real,dimension(:,:,:,:),allocatable :: monthuncloud
+real,dimension(:,:,:),allocatable :: monthphasecloud
+real,dimension(:,:,:),allocatable  ::  monthcftemp,monthcftempice
+real,dimension(:,:,:),allocatable  ::  monthcftempliq
+real,dimension(:,:,:),allocatable  :: monthcftempphase,indmonthphasetemp
+real,dimension(:,:,:),allocatable  :: indcftemppermonth
+real,dimension(:,:,:,:),allocatable  :: indcftempphase,indcftemp
+real,dimension(:,:,:,:),allocatable  :: cftempday,cftempphaseday
+real,dimension(:,:,:,:),allocatable  :: cftempiceday,cftempliqday
+real,dimension(:,:),allocatable  ::  cftemp,cftempliq,cftempice
+real  ::  cfsumtemp
 
 ! variable pour fichier phase occurrences
 real*4,dimension(:,:,:),allocatable  :: tot_ind,cloud_ind,ice_ind,water_ind
@@ -881,15 +882,9 @@ real*4,dimension(:,:,:,:),allocatable  :: un_ind
 !cftempiceday
 !cftempliqday
 
-      metal='Lidar_Data_Altitudes'   ! name of meta var     
-      metam='Met_Data_Altitudes' 
+metal='Lidar_Data_Altitudes'   ! name of meta var     
+metam='Met_Data_Altitudes' 
 
-
-
-!****************************************************************************!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!****************************************************************************!
- 
 
 !****************************************************************************!
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
@@ -5219,19 +5214,10 @@ ENDSELECT
 
 print *, 'END OF PROGRAM'
 print *, '-----------------------------------------------------------------------'
-print *, '-----------------------------------------------------------------------'
-
-
-
-
 
 
 contains
 
-
-!****************************************************************************!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!****************************************************************************!
 
 !****************************************************************************!
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
@@ -5239,10 +5225,6 @@ contains
 !*                            END OF PROGRAM                                *!
 !*                                                                          *!
 !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*!
-!****************************************************************************!
-
-!****************************************************************************!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !****************************************************************************!
 
 
