@@ -70,7 +70,7 @@ MODE="PROD"
 #FC4_BUG = -no-ipo
 FC4_BUG=-no-ipo
 
-
+cd src/
 
 if [ $MODE == "DEVEL" ]
 then
@@ -112,3 +112,5 @@ ${COMPILO} $NAME.tmp.f90 calendar.f90 output.f90 signal.f90 subgrid.f90 vertical
 # Clean trash
 rm -f $NAME.tmp.f90
 
+cd ../run
+ln -s ../src/${NAME}.e ../run
