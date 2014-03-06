@@ -24,11 +24,8 @@ period=${liste%%"_"*}
 
 cd $output
 
-ln -s ../GRIDS .
-ln -s ../IN .
-
-cp ../calmdz2.70.e .
-cp ../args.init args
+ln -s ../run/* .
+mv args.init args
 
 sed -i s/LISTNAME/$liste/g args 
 
