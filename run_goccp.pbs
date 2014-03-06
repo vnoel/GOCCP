@@ -25,7 +25,7 @@ period=${liste%%"_"*}
 cd $output
 
 ln -s ../run/* .
-mv args.init args
+cp args.init args
 
 sed -i s/LISTNAME/$liste/g args 
 
