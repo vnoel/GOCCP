@@ -1,0 +1,38 @@
+#!/bin/sh
+
+# script to run GOCCP on the cluster for a given month
+# a job will be created on the cluster for each day of the month
+# input list names should already exist (check day_lists.sh)
+
+# year, month and dayflag must be passed as arguments
+# qsub run_month.pbs -v year=2013,month=03,dayflag=night
+
+#PBS -N "goccp"
+#PBS -l "nodes=1"
+#PBS -j oe
+#PBS -l "mem=4g"
+#PBS -e ./log/log
+
+# Create one job per day
+# in each job the PBS_ARRAY_INDEX variable will equal the day
+#PBS -t 1-31
+
+mkdir log
+
+cd $PBS_O_WORKDIR
+
+day=$PBS_ARRAYID
+if [ ${#day} == 1 ]; then
+    day=0$day
+fi
+
+liste=${year}${month}${day}_${dayflag}
+echo "liste "$liste
+
+# put the right period/listname in the args file
+period=$year$month$day
+argsname=args.$year$month$day
+cp args.init $argsname
+sed -i s/LISTNAME/$liste/g $argsname
+
+./calmdz2.70.e < $argsname
