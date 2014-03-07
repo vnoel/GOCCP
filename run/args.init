@@ -1,7 +1,7 @@
 3D_CloudFraction330m_LISTNAME_CFMIP2_sat_
 'IN/LISTNAME'
 lmdz
-night
+DAYFLAG
 CFMIP2
 altitude
 sat

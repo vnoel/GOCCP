@@ -31,8 +31,10 @@ echo "liste "$liste
 
 # put the right period/listname in the args file
 period=$year$month$day
+
 argsname=args.$year$month$day
 cp args.init $argsname
 sed -i s/LISTNAME/$liste/g $argsname
+sed -i s/DAYFLAG/$dayflag/g $argsname
 
 ./calmdz2.70.e < $argsname
