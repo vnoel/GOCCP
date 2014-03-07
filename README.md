@@ -11,7 +11,7 @@ source code for GOCCP production - LMD branch
 * on/off = produce instant files
 * 0/1 = non-overlap mode if 1
 
-This will compile the source and link the executable in the run/ directory.
+This will compile the source and link the executable `calmdz2.70.e` in the run/ directory.
 
 # 2. How to run
 
