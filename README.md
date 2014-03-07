@@ -3,7 +3,7 @@ GOCCP
 
 source code for GOCCP production - LMD branch
 
-1. How to compile
+# 1. How to compile
 
 ./compile.sh calmdz2.70 on 0
 
@@ -13,7 +13,7 @@ source code for GOCCP production - LMD branch
 
 This will compile the source and link the executable in the run/ directory.
 
-2. How to run
+# 2. How to run
 
 2.1 On a given list of files
 
