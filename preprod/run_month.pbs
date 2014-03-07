@@ -20,6 +20,7 @@
 cd $PBS_O_WORKDIR
 
 day=$PBS_ARRAYID
+# this is ugly but hey it works
 if [ ${#day} == 1 ]; then
     day=0$day
 fi
