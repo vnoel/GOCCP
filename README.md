@@ -5,7 +5,10 @@ source code for GOCCP production - LMD branch
 
 # 1. How to compile
 
-`./compile.sh calmdz2.70 on 0`
+* `cd src`
+* `./compile.sh calmdz2.70 on 0`
+
+compile.sh script options :
 
 * calmdz2.70 = name of executable.
 * on/off = produce instant files
