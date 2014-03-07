@@ -17,8 +17,6 @@
 # in each job the PBS_ARRAY_INDEX variable will equal the day
 #PBS -t 1-31
 
-mkdir log
-
 cd $PBS_O_WORKDIR
 
 day=$PBS_ARRAYID
