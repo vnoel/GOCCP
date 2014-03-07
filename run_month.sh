@@ -18,5 +18,6 @@ cd $workdir
 ln -s ../run/* .
 ln -s ../preprod/run_month.pbs .
 mkdir -p out/instant
+mkdir log
 
 qsub -v year=$YEAR,month=$MONTH,dayflag=$dayflag run_month.pbs
