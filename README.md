@@ -29,7 +29,7 @@ This will compile the source and link the executable in the run/ directory.
 * qsub run_list.pbs -v liste=input_list_file
 * output will be in input_list_file.$JOBID/out/
 
-## 2.3 For daily segments over a month (on the cluster)
+## 2.3 On daily segments over a month (on the cluster)
 
 * create daily lists using preprod/day_lists.sh YYYY MM (they go in run/IN)
 * ./run_month.sh YYYY MM DAYFLAG (DAYFLAG is day or night)
