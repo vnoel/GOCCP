@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$#" -ne 2 ]; then
+if [ "$#" -ne 3 ]; then
       echo "Creates one list of CALIOP L1 files per day for a given month"
       echo "Usage: $0 YYYY MM ZN/ZD"
       exit 1
